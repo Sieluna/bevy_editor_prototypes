@@ -1,9 +1,6 @@
 use std::path::PathBuf;
 
-use bevy::{
-    asset::AssetServer,
-    prelude::*,
-};
+use bevy::{asset::AssetServer, prelude::*};
 
 #[derive(Component, Deref)]
 pub struct PreviewAsset(pub PathBuf);
