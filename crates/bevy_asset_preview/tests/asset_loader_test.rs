@@ -226,11 +226,13 @@ fn test_complete_filesystem_workflow() {
     std::thread::sleep(std::time::Duration::from_millis(100));
 
     for (_, path, _) in &test_images {
-        let saved_path = temp_dir
+        let mut saved_path = temp_dir
             .path()
             .join("cache")
             .join("asset_preview")
             .join(path);
+
+        saved_path.set_extension("webp");
 
         let saved_path = saved_path
             .canonicalize()
@@ -244,12 +246,15 @@ fn test_complete_filesystem_workflow() {
     }
 
     for (_, path, _) in &test_images {
-        let src = temp_dir
+        let mut src = temp_dir
             .path()
             .join("cache")
             .join("asset_preview")
             .join(path);
-        let dst = assets_dir.join(path);
+        src.set_extension("webp");
+
+        let mut dst = assets_dir.join(path);
+        dst.set_extension("webp");
         if let Some(parent) = dst.parent() {
             fs::create_dir_all(parent).expect("Failed to create assets subdirectory");
         }
@@ -257,7 +262,8 @@ fn test_complete_filesystem_workflow() {
     }
 
     for (_, path, _) in &test_images {
-        let asset_file = assets_dir.join(path);
+        let mut asset_file = assets_dir.join(path);
+        asset_file.set_extension("webp");
         assert!(
             asset_file.exists(),
             "Asset file should exist before loading: {:?}",
@@ -266,11 +272,11 @@ fn test_complete_filesystem_workflow() {
     }
 
     let asset_paths: Vec<(bevy::asset::AssetPath<'static>, LoadPriority)> = vec![
-        ("test_red.png".into(), LoadPriority::Preload),
-        ("test_green.png".into(), LoadPriority::HotReload),
-        ("test_blue.png".into(), LoadPriority::CurrentAccess),
-        ("test_yellow.png".into(), LoadPriority::CurrentAccess),
-        ("test_magenta.png".into(), LoadPriority::HotReload),
+        ("test_red.webp".into(), LoadPriority::Preload),
+        ("test_green.webp".into(), LoadPriority::HotReload),
+        ("test_blue.webp".into(), LoadPriority::CurrentAccess),
+        ("test_yellow.webp".into(), LoadPriority::CurrentAccess),
+        ("test_magenta.webp".into(), LoadPriority::HotReload),
     ];
 
     let mut loader = app.world_mut().resource_mut::<AssetLoader>();
@@ -315,6 +321,17 @@ fn test_complete_filesystem_workflow() {
             }
         }
 
+        let failed_events = app
+            .world()
+            .resource::<bevy::ecs::event::Events<AssetLoadFailed>>();
+        let mut failed_cursor = failed_events.get_cursor();
+        for event in failed_cursor.read(failed_events) {
+            eprintln!(
+                "Load failed: task_id={}, path={:?}, error={}",
+                event.task_id, event.path, event.error
+            );
+        }
+
         if max_iterations % 100 == 0 {
             let loader = app.world().resource::<AssetLoader>();
             let active_tasks = loader.active_tasks();
@@ -323,17 +340,6 @@ fn test_complete_filesystem_workflow() {
                 "Load progress: completed={}, active={}, queue={}, iterations={}",
                 load_completed_count, active_tasks, queue_len, max_iterations
             );
-
-            let failed_events = app
-                .world()
-                .resource::<bevy::ecs::event::Events<AssetLoadFailed>>();
-            let mut failed_cursor = failed_events.get_cursor();
-            for event in failed_cursor.read(failed_events) {
-                eprintln!(
-                    "Load failed: task_id={}, path={:?}, error={}",
-                    event.task_id, event.path, event.error
-                );
-            }
         }
     }
 

@@ -1,7 +1,9 @@
 mod asset;
+mod preview;
 mod ui;
 
 pub use asset::*;
+pub use preview::*;
 pub use ui::*;
 
 use bevy::prelude::*;
@@ -13,10 +15,41 @@ use bevy::prelude::*;
 /// So long as the assets are unchanged, the previews will be cached and will not need to be re-rendered.
 /// In theory this can be done passively in the background, and the previews will be ready when the user needs them.
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum AssetPreviewType {
+    Image,
+    GLTF,
+    Scene,
+    Other,
+}
+
 pub struct AssetPreviewPlugin;
 
 impl Plugin for AssetPreviewPlugin {
-    fn build(&self, _app: &mut App) {
+    fn build(&self, app: &mut App) {
+        // Initialize resources
+        app.init_resource::<AssetLoader>();
+        app.init_resource::<PreviewCache>();
 
+        // Register events
+        app.add_event::<asset::AssetLoadCompleted>();
+        app.add_event::<asset::AssetLoadFailed>();
+        app.add_event::<asset::AssetHotReloaded>();
+
+        // Register systems
+        // Process preview requests and submit to loader
+        app.add_systems(Update, ui::preview_handler);
+
+        // Process load queue (starts new load tasks)
+        app.add_systems(Update, asset::process_load_queue);
+
+        // Handle asset events (completion, failures, hot reloads)
+        app.add_systems(Update, asset::handle_asset_events);
+
+        // Handle preview load completion and update UI
+        app.add_systems(
+            Update,
+            ui::handle_preview_load_completed.after(asset::handle_asset_events),
+        );
     }
 }

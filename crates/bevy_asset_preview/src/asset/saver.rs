@@ -83,7 +83,15 @@ pub fn save_image<'a>(
 
     let task_pool = IoTaskPool::get();
     let target_path_clone = target_path.clone();
-    let target_path_for_writer = target_path.path().to_path_buf();
+    // Ensure the file extension is .webp for WebP format
+    let mut target_path_for_writer = target_path.path().to_path_buf();
+    if let Some(ext) = target_path_for_writer.extension() {
+        if ext.to_str() != Some("webp") {
+            target_path_for_writer.set_extension("webp");
+        }
+    } else {
+        target_path_for_writer.set_extension("webp");
+    }
 
     task_pool.spawn(async move {
         // Create directory first
@@ -97,12 +105,12 @@ pub fn save_image<'a>(
 
         // Encode PNG directly to memory
         let mut cursor = Cursor::new(Vec::new());
-        match rgba_image.write_to(&mut cursor, image::ImageFormat::Png) {
+        match rgba_image.write_to(&mut cursor, image::ImageFormat::WebP) {
             Ok(_) => {
-                let png_bytes = cursor.into_inner();
+                let webp_bytes = cursor.into_inner();
                 // Write via AssetWriter (atomic operation)
                 match writer
-                    .write_bytes(&target_path_for_writer, &png_bytes)
+                    .write_bytes(&target_path_for_writer, &webp_bytes)
                     .await
                 {
                     Ok(_) => {
@@ -118,7 +126,7 @@ pub fn save_image<'a>(
                 }
             }
             Err(e) => {
-                let error = format!("Failed to encode image to PNG: {:?}", e);
+                let error = format!("Failed to encode image to WebP: {:?}", e);
                 bevy::log::error!("{}", error);
                 Err(error)
             }
