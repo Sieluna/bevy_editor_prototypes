@@ -8,7 +8,7 @@ use bevy::{
 
 use crate::{
     asset::{AssetLoader, LoadPriority},
-    preview::{PreviewCache, compress_image_for_preview},
+    preview::{PreviewCache, resize_image_for_preview},
 };
 
 #[derive(Component, Deref)]
@@ -116,6 +116,7 @@ pub fn handle_preview_load_completed(
     mut load_completed_events: EventReader<crate::asset::AssetLoadCompleted>,
     pending_query: Query<(Entity, &PendingPreviewLoad)>,
     mut image_node_query: Query<&mut ImageNode>,
+    time: Res<Time<Real>>,
 ) {
     for event in load_completed_events.read() {
         // Find entities waiting for this task
@@ -124,8 +125,7 @@ pub fn handle_preview_load_completed(
                 // Check if image is loaded
                 if let Some(image) = images.get(&event.handle) {
                     // Compress if needed
-                    let preview_image = if let Some(compressed) = compress_image_for_preview(image)
-                    {
+                    let preview_image = if let Some(compressed) = resize_image_for_preview(image) {
                         images.add(compressed)
                     } else {
                         event.handle.clone()
@@ -133,15 +133,11 @@ pub fn handle_preview_load_completed(
 
                     // Cache the preview
                     let preview_id = preview_image.id();
-                    let timestamp = std::time::SystemTime::now()
-                        .duration_since(std::time::UNIX_EPOCH)
-                        .unwrap()
-                        .as_secs();
                     cache.insert(
                         &pending.asset_path,
                         preview_id,
                         preview_image.clone(),
-                        timestamp,
+                        time.elapsed().as_secs(),
                     );
 
                     // Update ImageNode

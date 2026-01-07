@@ -12,8 +12,8 @@ pub use systems::{
 const MAX_PREVIEW_SIZE: u32 = 256;
 
 /// Resizes an image to preview size if it's larger than the maximum.
-/// Returns a new compressed image, or None if the image is already small enough.
-pub fn compress_image_for_preview(image: &Image) -> Option<Image> {
+/// Returns a new resized image, or None if the image is already small enough.
+pub fn resize_image_for_preview(image: &Image) -> Option<Image> {
     let width = image.width();
     let height = image.height();
 

@@ -3,7 +3,7 @@ use std::io::Cursor;
 use bevy::{
     asset::{AssetPath, io::ErasedAssetWriter},
     ecs::event::{BufferedEvent, Event},
-    image::Image,
+    image::{Image, ImageFormat},
     platform::collections::HashMap,
     prelude::{
         Assets, Commands, Component, Entity, EventReader, EventWriter, Handle, Query, ResMut,
@@ -105,7 +105,10 @@ pub fn save_image<'a>(
 
         // Encode PNG directly to memory
         let mut cursor = Cursor::new(Vec::new());
-        match rgba_image.write_to(&mut cursor, image::ImageFormat::WebP) {
+        match rgba_image.write_to(
+            &mut cursor,
+            ImageFormat::WebP.as_image_crate_format().unwrap(), // unwrap is safe because we enable bevy webp feature
+        ) {
             Ok(_) => {
                 let webp_bytes = cursor.into_inner();
                 // Write via AssetWriter (atomic operation)

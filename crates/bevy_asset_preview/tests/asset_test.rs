@@ -1,3 +1,5 @@
+mod common;
+
 use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
@@ -6,43 +8,14 @@ use bevy::{
     asset::{AssetPath, AssetPlugin, io::file::FileAssetWriter},
     image::{CompressedImageFormats, ImageLoader},
     prelude::*,
-    render::{
-        render_asset::RenderAssetUsages,
-        render_resource::{Extent3d, TextureDimension, TextureFormat},
-    },
 };
 use bevy_asset_preview::{
     ActiveSaveTask, AssetHotReloaded, AssetLoadCompleted, AssetLoadFailed, AssetLoader,
     LoadPriority, SaveCompleted, SaveTaskTracker, handle_asset_events, monitor_save_completion,
     process_load_queue, save_image,
 };
+use common::create_test_image;
 use tempfile::TempDir;
-
-/// Helper function to create a test image with a specific color.
-fn create_test_image(
-    images: &mut Assets<Image>,
-    width: u32,
-    height: u32,
-    color: [u8; 4],
-) -> Handle<Image> {
-    let pixel_data: Vec<u8> = (0..(width * height))
-        .flat_map(|_| color.iter().copied())
-        .collect();
-
-    let image = Image::new_fill(
-        Extent3d {
-            width,
-            height,
-            depth_or_array_layers: 1,
-        },
-        TextureDimension::D2,
-        &pixel_data,
-        TextureFormat::Rgba8UnormSrgb,
-        RenderAssetUsages::MAIN_WORLD | RenderAssetUsages::RENDER_WORLD,
-    );
-
-    images.add(image)
-}
 
 pub(crate) fn get_base_path() -> PathBuf {
     if let Ok(manifest_dir) = std::env::var("BEVY_ASSET_ROOT") {

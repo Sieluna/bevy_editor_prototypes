@@ -6,7 +6,7 @@ use bevy::{
     prelude::*,
 };
 
-use crate::preview::{PreviewCache, compress_image_for_preview};
+use crate::preview::{PreviewCache, resize_image_for_preview};
 
 /// Event emitted when a preview is ready.
 #[derive(Event, BufferedEvent, Debug, Clone)]
@@ -114,7 +114,7 @@ pub fn request_image_preview<'a>(
     // Check if image is already loaded
     if let Some(image) = images.get(&handle) {
         // Image is already loaded, compress if needed and cache
-        let preview_image = if let Some(compressed) = compress_image_for_preview(image) {
+        let preview_image = if let Some(compressed) = resize_image_for_preview(image) {
             images_mut.add(compressed)
         } else {
             handle.clone()
@@ -153,17 +153,19 @@ pub fn handle_image_preview_events(
     requests: Query<(Entity, &PendingPreviewRequest)>,
     mut task_manager: ResMut<PreviewTaskManager>,
     mut ready_events: EventReader<PreviewReady>,
+    time: Res<Time<Real>>,
 ) {
     // Cache previews from ready events
     for event in ready_events.read() {
         // Cache the preview if not already cached
         if cache.get_by_path(&event.path).is_none() {
             let asset_id = event.image_handle.id();
-            let timestamp = std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_secs();
-            cache.insert(&event.path, asset_id, event.image_handle.clone(), timestamp);
+            cache.insert(
+                &event.path,
+                asset_id,
+                event.image_handle.clone(),
+                time.elapsed().as_secs(),
+            );
         }
     }
     for event in asset_events.read() {
@@ -176,7 +178,7 @@ pub fn handle_image_preview_events(
                         if let Some(image) = images.get(&handle) {
                             // Compress if needed
                             let preview_image =
-                                if let Some(compressed) = compress_image_for_preview(image) {
+                                if let Some(compressed) = resize_image_for_preview(image) {
                                     images.add(compressed)
                                 } else {
                                     handle.clone()
@@ -184,15 +186,11 @@ pub fn handle_image_preview_events(
 
                             // Cache the preview
                             let preview_id = preview_image.id();
-                            let timestamp = std::time::SystemTime::now()
-                                .duration_since(std::time::UNIX_EPOCH)
-                                .unwrap()
-                                .as_secs();
                             cache.insert(
                                 &request.path,
                                 preview_id,
                                 preview_image.clone(),
-                                timestamp,
+                                time.elapsed().as_secs(),
                             );
 
                             // Send ready event
