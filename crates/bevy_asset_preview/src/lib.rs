@@ -31,11 +31,14 @@ impl Plugin for AssetPreviewPlugin {
         app.init_resource::<asset::AssetLoader>();
         app.init_resource::<preview::PreviewCache>();
         app.init_resource::<preview::PreviewConfig>();
+        app.init_resource::<preview::PreviewTaskManager>();
 
         // Register events
         app.add_event::<asset::AssetLoadCompleted>();
         app.add_event::<asset::AssetLoadFailed>();
         app.add_event::<asset::AssetHotReloaded>();
+        app.add_event::<preview::PreviewReady>();
+        app.add_event::<preview::PreviewFailed>();
 
         // Register systems
         // Process preview requests and submit to loader
@@ -57,5 +60,34 @@ impl Plugin for AssetPreviewPlugin {
             )
                 .after(asset::handle_asset_events),
         );
+
+        // Handle image preview events
+        app.add_systems(Update, preview::handle_image_preview_events);
+
+        // Process 3D preview requests
+        app.add_systems(
+            Update,
+            (
+                preview::process_3d_preview_requests,
+                preview::wait_for_asset_load,
+            )
+                .chain(),
+        );
+
+        // Capture screenshots for image previews
+        app.add_systems(Update, preview::capture_preview_screenshot);
+
+        // Handle screenshot events (currently placeholder - requires observers for EntityEvent)
+        // app.add_systems(Update, preview::handle_preview_screenshots);
+
+        // Update entity preview camera (temporarily disabled)
+        // app.add_systems(
+        //     Update,
+        //     (
+        //         preview::update_preview_camera,
+        //         preview::update_preview_camera_bounds,
+        //     )
+        //         .chain(),
+        // );
     }
 }

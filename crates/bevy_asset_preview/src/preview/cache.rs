@@ -3,10 +3,10 @@ use core::time::Duration;
 use std::path::Path;
 
 use bevy::{
-    asset::{AssetId, AssetPath},
+    asset::{AssetPath, UntypedAssetId},
     image::Image,
     platform::collections::HashMap,
-    prelude::{Handle, Resource},
+    prelude::*,
 };
 
 /// Cache entry for a preview image at a specific resolution.
@@ -15,7 +15,7 @@ pub struct PreviewCacheEntry {
     /// The preview image handle.
     pub image_handle: Handle<Image>,
     /// The asset ID that this preview is for.
-    pub asset_id: AssetId<Image>,
+    pub asset_id: UntypedAssetId,
     /// Resolution in pixels (max dimension).
     pub resolution: u32,
     /// Timestamp for cache invalidation.
@@ -28,7 +28,7 @@ pub struct PreviewCache {
     /// Maps asset path with resolution suffix to cache entry.
     path_cache: HashMap<AssetPath<'static>, PreviewCacheEntry>,
     /// Maps asset ID to all resolutions for efficient lookup and cleanup.
-    id_to_paths: HashMap<AssetId<Image>, Vec<AssetPath<'static>>>,
+    id_to_paths: HashMap<UntypedAssetId, Vec<AssetPath<'static>>>,
 }
 
 impl PreviewCache {
@@ -194,7 +194,7 @@ impl PreviewCache {
     /// Returns highest resolution if resolution is None.
     pub fn get_by_id(
         &self,
-        asset_id: AssetId<Image>,
+        asset_id: UntypedAssetId,
         resolution: Option<u32>,
     ) -> Option<&PreviewCacheEntry> {
         let paths = self.id_to_paths.get(&asset_id)?;
@@ -229,12 +229,13 @@ impl PreviewCache {
     pub fn insert<'a>(
         &mut self,
         path: impl Into<AssetPath<'a>>,
-        asset_id: AssetId<Image>,
+        asset_id: impl Into<UntypedAssetId>,
         resolution: u32,
         image_handle: Handle<Image>,
         timestamp: Duration,
     ) {
         let path: AssetPath<'static> = path.into().into_owned();
+        let asset_id = asset_id.into();
         let cache_path = Self::cache_path_for_resolution(&path, resolution);
 
         let entry = PreviewCacheEntry {
@@ -314,7 +315,7 @@ impl PreviewCache {
     /// Removes a path from an asset ID's path list.
     fn remove_path_from_id_mapping(
         &mut self,
-        asset_id: &AssetId<Image>,
+        asset_id: &UntypedAssetId,
         cache_path: &AssetPath<'static>,
     ) {
         if let Some(paths) = self.id_to_paths.get_mut(asset_id) {
@@ -328,7 +329,7 @@ impl PreviewCache {
     /// Cleans up ID mapping for a removed asset.
     fn cleanup_id_mapping(
         &mut self,
-        asset_id: &AssetId<Image>,
+        asset_id: &UntypedAssetId,
         original_path: &AssetPath<'static>,
     ) {
         if let Some(paths) = self.id_to_paths.get_mut(asset_id) {
@@ -349,7 +350,7 @@ impl PreviewCache {
     /// Removes all resolutions if resolution is None.
     pub fn remove_by_id(
         &mut self,
-        asset_id: AssetId<Image>,
+        asset_id: UntypedAssetId,
         resolution: Option<u32>,
     ) -> Option<PreviewCacheEntry> {
         let paths = self.id_to_paths.get(&asset_id)?.clone();
@@ -493,8 +494,8 @@ mod tests {
                 .resource_scope(|_world, mut images: Mut<Assets<Image>>| {
                     let h1 = create_test_image(&mut images, 64, 64, [255, 0, 0, 255]);
                     let h2 = create_test_image(&mut images, 64, 64, [0, 255, 0, 255]);
-                    let id1 = h1.id();
-                    let id2 = h2.id();
+                    let id1 = h1.id().untyped();
+                    let id2 = h2.id().untyped();
                     (h1, h2, id1, id2)
                 });
 

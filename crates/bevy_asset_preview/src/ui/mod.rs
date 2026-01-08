@@ -1,14 +1,19 @@
 use std::path::{Path, PathBuf};
 
 use bevy::{
-    asset::{AssetPath, AssetServer},
+    asset::{AssetPath, AssetServer, LoadState},
+    gltf::GltfAssetLabel,
     image::Image,
     prelude::*,
+    scene::Scene,
 };
 
 use crate::{
     asset::{AssetLoader, LoadPriority},
-    preview::{PreviewCache, PreviewConfig},
+    preview::{
+        ModelFormat, PendingPreviewRequest, PreviewCache, PreviewConfig, PreviewMode,
+        PreviewRequestType, PreviewTaskManager,
+    },
 };
 
 #[derive(Component, Deref)]
@@ -56,56 +61,163 @@ pub fn is_image_file(path: &Path) -> bool {
         .unwrap_or(false)
 }
 
+/// Checks if a file path represents a GLTF model file based on its extension.
+pub fn is_gltf_file(path: &Path) -> bool {
+    path.extension()
+        .and_then(|ext| ext.to_str())
+        .map(|ext| matches!(ext.to_lowercase().as_str(), "gltf" | "glb"))
+        .unwrap_or(false)
+}
+
+/// Checks if a file path represents an OBJ model file based on its extension.
+pub fn is_obj_file(path: &Path) -> bool {
+    path.extension()
+        .and_then(|ext| ext.to_str())
+        .map(|ext| ext.to_lowercase().as_str() == "obj")
+        .unwrap_or(false)
+}
+
+/// Checks if a file path represents a 3D model file based on its extension.
+pub fn is_model_file(path: &Path) -> bool {
+    is_gltf_file(path) || is_obj_file(path)
+    // Add other model formats here as needed (fbx, 3ds, etc.)
+}
+
 /// System that handles PreviewAsset components and initiates preview loading.
 pub fn preview_handler(
     mut commands: Commands,
     mut requests_query: Query<
         (Entity, &PreviewAsset),
-        (Without<PendingPreviewLoad>, Without<ImageNode>),
+        (
+            Added<PreviewAsset>,
+            Without<PendingPreviewLoad>,
+            Without<ImageNode>,
+        ),
     >,
     asset_server: Res<AssetServer>,
     mut loader: ResMut<AssetLoader>,
+    mut task_manager: ResMut<PreviewTaskManager>,
     cache: Res<PreviewCache>,
 ) {
     for (entity, preview_asset) in &mut requests_query {
         let path = &preview_asset.0;
 
-        // Check if it's an image file
-        if !is_image_file(path) {
-            // Not an image, use placeholder
-            let placeholder = asset_server.load(FILE_PLACEHOLDER);
-            commands.entity(entity).insert(ImageNode::new(placeholder));
-            commands.entity(entity).remove::<PreviewAsset>();
-            continue;
-        }
-
         // Convert PathBuf to AssetPath
         let asset_path: AssetPath<'static> = path.clone().into();
 
-        // Check cache first
-        if let Some(cache_entry) = cache.get_by_path(&asset_path, None) {
-            // Cache hit - use cached preview immediately
-            commands
-                .entity(entity)
-                .insert(ImageNode::new(cache_entry.image_handle.clone()));
-            commands.entity(entity).remove::<PreviewAsset>();
+        // Check if it's an image file
+        if is_image_file(path) {
+            // Check cache first
+            if let Some(cache_entry) = cache.get_by_path(&asset_path, None) {
+                // Cache hit - use cached preview immediately
+                commands
+                    .entity(entity)
+                    .insert(ImageNode::new(cache_entry.image_handle.clone()));
+                commands.entity(entity).remove::<PreviewAsset>();
+                continue;
+            }
+
+            // Cache miss - submit to AssetLoader with Preload priority
+            let task_id = loader.submit(&asset_path, LoadPriority::Preload);
+
+            // Mark as pending
+            commands.entity(entity).insert(PendingPreviewLoad {
+                task_id,
+                asset_path: asset_path.clone(),
+            });
+
+            // Insert placeholder temporarily
+            let placeholder = asset_server.load(FILE_PLACEHOLDER);
+            commands.entity(entity).insert(ImageNode::new(placeholder));
             continue;
         }
 
-        // Cache miss - submit to AssetLoader with Preload priority
-        // (can be upgraded to CurrentAccess based on viewport visibility later)
-        let task_id = loader.submit(&asset_path, LoadPriority::Preload);
+        // Check if it's a 3D model file
+        if is_model_file(path) {
+            // Check cache first
+            if let Some(cache_entry) = cache.get_by_path(&asset_path, Some(256)) {
+                // Cache hit - use cached preview immediately
+                commands
+                    .entity(entity)
+                    .insert(ImageNode::new(cache_entry.image_handle.clone()));
+                commands.entity(entity).remove::<PreviewAsset>();
+                continue;
+            }
 
-        // Mark as pending
-        commands.entity(entity).insert(PendingPreviewLoad {
-            task_id,
-            asset_path: asset_path.clone(),
-        });
+            // Request 3D preview
+            let _task_id = request_3d_preview(
+                &mut commands,
+                &mut task_manager,
+                &asset_server,
+                &asset_path,
+                PreviewMode::Image, // Default to image mode for folder views
+            );
 
-        // Insert placeholder temporarily
+            // Insert placeholder temporarily
+            let placeholder = asset_server.load(FILE_PLACEHOLDER);
+            commands.entity(entity).insert(ImageNode::new(placeholder));
+            continue;
+        }
+
+        // Not a supported file type, use placeholder
         let placeholder = asset_server.load(FILE_PLACEHOLDER);
         commands.entity(entity).insert(ImageNode::new(placeholder));
+        commands.entity(entity).remove::<PreviewAsset>();
     }
+}
+
+/// Requests a 3D preview for the given asset path.
+pub fn request_3d_preview(
+    commands: &mut Commands,
+    task_manager: &mut PreviewTaskManager,
+    asset_server: &AssetServer,
+    path: &AssetPath<'static>,
+    mode: PreviewMode,
+) -> u64 {
+    let task_id = task_manager.create_task_id();
+
+    // Determine request type based on file extension
+    let request_type = if is_gltf_file(path.path()) {
+        // Load GLTF Scene directly using GltfAssetLabel
+        let scene_path = GltfAssetLabel::Scene(0).from_asset(path.clone());
+        let scene_handle: Handle<Scene> = asset_server.load(scene_path);
+        PreviewRequestType::ModelFile {
+            handle: scene_handle,
+            format: ModelFormat::Gltf,
+        }
+    } else if is_obj_file(path.path()) {
+        let scene_handle: Handle<Scene> = asset_server.load(path);
+        PreviewRequestType::ModelFile {
+            handle: scene_handle,
+            format: ModelFormat::Obj,
+        }
+    } else {
+        // Try as generic scene
+        let scene_handle: Handle<Scene> = asset_server.load(path);
+        PreviewRequestType::ModelFile {
+            handle: scene_handle,
+            format: ModelFormat::Other(
+                path.path()
+                    .extension()
+                    .and_then(|e| e.to_str())
+                    .unwrap_or("unknown")
+                    .to_string(),
+            ),
+        }
+    };
+
+    // Spawn pending request entity
+    let entity = commands
+        .spawn(PendingPreviewRequest {
+            task_id,
+            path: path.clone(),
+            request_type,
+            mode,
+        })
+        .id();
+
+    task_manager.register_task(task_id, entity);
+    task_id
 }
 
 /// System that handles completed asset loads and updates previews.
@@ -115,7 +227,7 @@ pub fn handle_preview_load_completed(
     config: Res<PreviewConfig>,
     mut images: ResMut<Assets<Image>>,
     mut load_completed_events: EventReader<crate::asset::AssetLoadCompleted>,
-    pending_query: Query<(Entity, &PendingPreviewLoad)>,
+    pending_query: Query<(Entity, &PendingPreviewLoad), With<ImageNode>>,
     mut image_node_query: Query<&mut ImageNode>,
     time: Res<Time<Real>>,
 ) {
@@ -127,7 +239,7 @@ pub fn handle_preview_load_completed(
                 if let Some(image) = images.get(&event.handle) {
                     // Clone image data before mutable operations
                     let image_clone = image.clone();
-                    let asset_id = event.handle.id();
+                    let asset_id = event.handle.id().untyped();
 
                     // Generate previews for all configured resolutions
                     crate::preview::generate_previews_for_resolutions(
@@ -166,7 +278,7 @@ pub fn handle_preview_load_completed(
 pub fn handle_preview_load_failed(
     mut commands: Commands,
     mut load_failed_events: EventReader<crate::asset::AssetLoadFailed>,
-    pending_query: Query<(Entity, &PendingPreviewLoad)>,
+    pending_query: Query<(Entity, &PendingPreviewLoad), With<PreviewAsset>>,
 ) {
     for event in load_failed_events.read() {
         // Find entities waiting for this task
@@ -188,11 +300,9 @@ pub fn check_failed_loads(
     mut commands: Commands,
     mut loader: ResMut<crate::asset::AssetLoader>,
     asset_server: Res<AssetServer>,
-    pending_query: Query<(Entity, &PendingPreviewLoad)>,
+    pending_query: Query<(Entity, &PendingPreviewLoad), With<PreviewAsset>>,
     task_query: Query<(Entity, &crate::asset::ActiveLoadTask)>,
 ) {
-    use bevy::asset::LoadState;
-
     for (entity, pending) in pending_query.iter() {
         // Try to find the active task for this pending load to get the correct handle
         let mut active_task_entity_opt = None;

@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::fs;
 use std::path::PathBuf;
 
@@ -16,6 +17,14 @@ use bevy_asset_preview::{
     save_image,
 };
 use tempfile::TempDir;
+use gltf::json::{
+    Accessor, Buffer, Mesh, Node, Root, Scene, Value,
+    accessor::{ComponentType, GenericComponentType, Type},
+    buffer::{Target, View},
+    mesh::{Mode, Primitive, Semantic},
+    serialize,
+    validation::{Checked::Valid, USize64},
+};
 
 // ========== Helper functions ==========
 
@@ -69,6 +78,195 @@ fn save_test_image(
             rgba_image.save(path)?;
         }
     }
+    Ok(())
+}
+
+/// Save a simple cube model as glb file
+fn save_model(path: &std::path::Path) -> Result<(), Box<dyn std::error::Error>> {
+    // Simple cube vertices (position only)
+    let positions: Vec<[f32; 3]> = vec![
+        // Front face
+        [-0.5, -0.5, 0.5],
+        [0.5, -0.5, 0.5],
+        [0.5, 0.5, 0.5],
+        [-0.5, 0.5, 0.5],
+        // Back face
+        [-0.5, -0.5, -0.5],
+        [-0.5, 0.5, -0.5],
+        [0.5, 0.5, -0.5],
+        [0.5, -0.5, -0.5],
+        // Top face
+        [-0.5, 0.5, -0.5],
+        [-0.5, 0.5, 0.5],
+        [0.5, 0.5, 0.5],
+        [0.5, 0.5, -0.5],
+        // Bottom face
+        [-0.5, -0.5, -0.5],
+        [0.5, -0.5, -0.5],
+        [0.5, -0.5, 0.5],
+        [-0.5, -0.5, 0.5],
+        // Right face
+        [0.5, -0.5, -0.5],
+        [0.5, 0.5, -0.5],
+        [0.5, 0.5, 0.5],
+        [0.5, -0.5, 0.5],
+        // Left face
+        [-0.5, -0.5, -0.5],
+        [-0.5, -0.5, 0.5],
+        [-0.5, 0.5, 0.5],
+        [-0.5, 0.5, -0.5],
+    ];
+
+    // Indices for triangles
+    let indices: Vec<u16> = vec![
+        0, 1, 2, 0, 2, 3, // Front
+        4, 5, 6, 4, 6, 7, // Back
+        8, 9, 10, 8, 10, 11, // Top
+        12, 13, 14, 12, 14, 15, // Bottom
+        16, 17, 18, 16, 18, 19, // Right
+        20, 21, 22, 20, 22, 23, // Left
+    ];
+
+    let mut root = Root::default();
+
+    // Create buffer with positions and indices
+    let positions_bytes: &[u8] = bytemuck::cast_slice(&positions);
+    let indices_bytes: &[u8] = bytemuck::cast_slice(&indices);
+    let mut buffer_data = Vec::from(positions_bytes);
+    buffer_data.extend_from_slice(indices_bytes);
+
+    // Pad buffer to multiple of 4
+    while buffer_data.len() % 4 != 0 {
+        buffer_data.push(0);
+    }
+
+    let buffer = root.push(Buffer {
+        byte_length: USize64::from(buffer_data.len()),
+        extensions: Default::default(),
+        extras: Default::default(),
+        name: None,
+        uri: None, // glb doesn't use uri
+    });
+
+    // Buffer view for positions
+    let positions_view = root.push(View {
+        buffer,
+        byte_length: USize64::from(positions_bytes.len()),
+        byte_offset: Some(USize64(0)),
+        byte_stride: None,
+        extensions: Default::default(),
+        extras: Default::default(),
+        name: None,
+        target: Some(Valid(Target::ArrayBuffer)),
+    });
+
+    // Buffer view for indices
+    let indices_view = root.push(View {
+        buffer,
+        byte_length: USize64::from(indices_bytes.len()),
+        byte_offset: Some(USize64::from(positions_bytes.len())),
+        byte_stride: None,
+        extensions: Default::default(),
+        extras: Default::default(),
+        name: None,
+        target: Some(Valid(Target::ElementArrayBuffer)),
+    });
+
+    // Accessor for positions
+    let positions_accessor = root.push(Accessor {
+        buffer_view: Some(positions_view),
+        byte_offset: None,
+        count: USize64::from(positions.len()),
+        component_type: Valid(GenericComponentType(ComponentType::F32)),
+        extensions: Default::default(),
+        extras: Default::default(),
+        type_: Valid(Type::Vec3),
+        min: Some(Value::from(vec![-0.5, -0.5, -0.5])),
+        max: Some(Value::from(vec![0.5, 0.5, 0.5])),
+        name: None,
+        normalized: false,
+        sparse: None,
+    });
+
+    // Accessor for indices
+    let indices_accessor = root.push(Accessor {
+        buffer_view: Some(indices_view),
+        byte_offset: None,
+        count: USize64::from(indices.len()),
+        component_type: Valid(GenericComponentType(ComponentType::U16)),
+        extensions: Default::default(),
+        extras: Default::default(),
+        type_: Valid(Type::Scalar),
+        min: None,
+        max: None,
+        name: None,
+        normalized: false,
+        sparse: None,
+    });
+
+    // Create mesh primitive
+    let primitive = Primitive {
+        attributes: {
+            let mut map = std::collections::BTreeMap::new();
+            map.insert(Valid(Semantic::Positions), positions_accessor);
+            map
+        },
+        extensions: Default::default(),
+        extras: Default::default(),
+        indices: Some(indices_accessor),
+        material: None,
+        mode: Valid(Mode::Triangles),
+        targets: None,
+    };
+
+    let mesh = root.push(Mesh {
+        extensions: Default::default(),
+        extras: Default::default(),
+        name: None,
+        primitives: vec![primitive],
+        weights: None,
+    });
+
+    let node = root.push(Node {
+        mesh: Some(mesh),
+        ..Default::default()
+    });
+
+    root.scenes = vec![Scene {
+        extensions: Default::default(),
+        extras: Default::default(),
+        name: None,
+        nodes: vec![node],
+    }];
+
+    // Save as glb (binary glTF)
+    let json_string = serialize::to_string(&root)?;
+    let mut json_offset = json_string.len();
+    while json_offset % 4 != 0 {
+        json_offset += 1;
+    }
+
+    let glb = gltf::binary::Glb {
+        header: gltf::binary::Header {
+            magic: *b"glTF",
+            version: 2,
+            length: (json_offset + buffer_data.len())
+                .try_into()
+                .map_err(|_| "File size exceeds binary glTF limit")?,
+        },
+        bin: Some(Cow::Owned(buffer_data)),
+        json: Cow::Owned({
+            let mut json_bytes = json_string.into_bytes();
+            while json_bytes.len() % 4 != 0 {
+                json_bytes.push(0x20); // pad with space
+            }
+            json_bytes
+        }),
+    };
+
+    let writer = std::fs::File::create(path)?;
+    glb.to_writer(writer)?;
+
     Ok(())
 }
 
@@ -607,11 +805,9 @@ fn test_complete_workflow() {
             let highest_resolution = highest_entry.resolution;
             let expected_highest = *config.resolutions.iter().max().unwrap();
             assert_eq!(
-                highest_resolution,
-                expected_highest,
+                highest_resolution, expected_highest,
                 "Highest resolution should be {} for {}",
-                expected_highest,
-                filename
+                expected_highest, filename
             );
 
             // Validate highest resolution entry properties
@@ -632,7 +828,8 @@ fn test_complete_workflow() {
                 if let Some(preview_image) = images.get(&highest_entry.image_handle) {
                     let max_dimension = expected_highest;
                     assert!(
-                        preview_image.width() <= max_dimension && preview_image.height() <= max_dimension,
+                        preview_image.width() <= max_dimension
+                            && preview_image.height() <= max_dimension,
                         "Large image {} should be compressed, got {}x{}",
                         filename,
                         preview_image.width(),
@@ -646,7 +843,12 @@ fn test_complete_workflow() {
                 if let Some(preview_image) = images.get(&highest_entry.image_handle) {
                     // Original: 800x200 = 4:1, compressed should maintain aspect ratio
                     let expected_height = (200.0 * expected_highest as f32 / 800.0) as u32;
-                    assert_eq!(preview_image.width(), expected_highest, "Wide image width should be {}", expected_highest);
+                    assert_eq!(
+                        preview_image.width(),
+                        expected_highest,
+                        "Wide image width should be {}",
+                        expected_highest
+                    );
                     assert_eq!(
                         preview_image.height(),
                         expected_height,

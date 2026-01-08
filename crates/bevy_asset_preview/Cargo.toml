@@ -9,3 +9,5 @@ image = "0.25"
 
 [dev-dependencies]
 tempfile = "3"
+gltf = "1"
+bytemuck = "1"
