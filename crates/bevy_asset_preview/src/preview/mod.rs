@@ -1,37 +1,48 @@
 mod cache;
 mod systems;
 
-use bevy::{asset::RenderAssetUsages, image::Image};
+use bevy::{asset::RenderAssetUsages, image::Image, prelude::*};
 pub use cache::{PreviewCache, PreviewCacheEntry};
 pub use systems::{
     PendingPreviewRequest, PreviewFailed, PreviewReady, PreviewTaskManager,
-    handle_image_preview_events, request_image_preview,
+    generate_previews_for_resolutions, handle_image_preview_events, request_image_preview,
 };
 
-/// Maximum preview size for 2D images (256x256).
-const MAX_PREVIEW_SIZE: u32 = 256;
+/// Configuration for preview generation.
+#[derive(Resource, Debug, Clone)]
+pub struct PreviewConfig {
+    /// Resolutions to generate previews for (in pixels). Default: [64, 256]
+    pub resolutions: Vec<u32>,
+}
 
-/// Resizes an image to preview size if it's larger than the maximum.
-/// Returns a new resized image, or None if the image is already small enough.
-pub fn resize_image_for_preview(image: &Image) -> Option<Image> {
+impl Default for PreviewConfig {
+    fn default() -> Self {
+        Self {
+            resolutions: vec![64, 256],
+        }
+    }
+}
+/// Resizes an image to a specific preview size.
+/// Returns None if the image is already small enough.
+pub fn resize_image_for_preview(image: &Image, target_size: u32) -> Option<Image> {
     let width = image.width();
     let height = image.height();
 
     // If image is already small enough, return None (use original)
-    if width <= MAX_PREVIEW_SIZE && height <= MAX_PREVIEW_SIZE {
+    if width <= target_size && height <= target_size {
         return None;
     }
 
     // Calculate new size maintaining aspect ratio
     let (new_width, new_height) = if width > height {
         (
-            MAX_PREVIEW_SIZE,
-            (height as f32 * MAX_PREVIEW_SIZE as f32 / width as f32) as u32,
+            target_size,
+            (height as f32 * target_size as f32 / width as f32) as u32,
         )
     } else {
         (
-            (width as f32 * MAX_PREVIEW_SIZE as f32 / height as f32) as u32,
-            MAX_PREVIEW_SIZE,
+            (width as f32 * target_size as f32 / height as f32) as u32,
+            target_size,
         )
     };
 
@@ -113,7 +124,7 @@ mod tests {
         // Test small image (should not be compressed)
         let small_handle = create_test_image(&mut images, 64, 64, [128, 128, 128, 255]);
         let small_image = images.get(&small_handle).unwrap();
-        let compressed_small = resize_image_for_preview(small_image);
+        let compressed_small = resize_image_for_preview(small_image, 256);
         assert!(
             compressed_small.is_none(),
             "Small image should not be compressed"
@@ -122,7 +133,7 @@ mod tests {
         // Test large image (should be compressed)
         let large_handle = create_test_image(&mut images, 512, 512, [128, 128, 128, 255]);
         let large_image = images.get(&large_handle).unwrap();
-        let compressed_large = resize_image_for_preview(large_image);
+        let compressed_large = resize_image_for_preview(large_image, 256);
         assert!(
             compressed_large.is_some(),
             "Large image should be compressed"
@@ -138,7 +149,7 @@ mod tests {
         // Test wide image (maintain aspect ratio)
         let wide_handle = create_test_image(&mut images, 800, 200, [128, 128, 128, 255]);
         let wide_image = images.get(&wide_handle).unwrap();
-        let compressed_wide = resize_image_for_preview(wide_image);
+        let compressed_wide = resize_image_for_preview(wide_image, 256);
         assert!(compressed_wide.is_some(), "Wide image should be compressed");
         let compressed = compressed_wide.unwrap();
         assert_eq!(compressed.width(), 256, "Wide image width should be 256");
@@ -157,7 +168,7 @@ mod tests {
         // Test tall image (maintain aspect ratio)
         let tall_handle = create_test_image(&mut images, 200, 800, [128, 128, 128, 255]);
         let tall_image = images.get(&tall_handle).unwrap();
-        let compressed_tall = resize_image_for_preview(tall_image);
+        let compressed_tall = resize_image_for_preview(tall_image, 256);
         assert!(compressed_tall.is_some(), "Tall image should be compressed");
         let compressed = compressed_tall.unwrap();
         assert_eq!(compressed.height(), 256, "Tall image height should be 256");

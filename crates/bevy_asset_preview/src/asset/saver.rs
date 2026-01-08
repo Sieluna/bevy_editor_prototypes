@@ -5,11 +5,8 @@ use bevy::{
     ecs::event::{BufferedEvent, Event},
     image::{Image, ImageFormat},
     platform::collections::HashMap,
-    prelude::{
-        Assets, Commands, Component, Entity, EventReader, EventWriter, Handle, Query, ResMut,
-        Resource,
-    },
-    tasks::{IoTaskPool, Task},
+    prelude::*,
+    tasks::{IoTaskPool, Task, block_on, futures_lite},
 };
 
 /// Active save task tracking component.
@@ -98,7 +95,7 @@ pub fn save_image<'a>(
         if let Some(parent) = target_path_for_writer.parent() {
             if let Err(e) = writer.create_directory(parent).await {
                 let error = format!("Failed to create directory {:?}: {:?}", parent, e);
-                bevy::log::error!("{}", error);
+                error!("{}", error);
                 return Err(error);
             }
         }
@@ -117,20 +114,20 @@ pub fn save_image<'a>(
                     .await
                 {
                     Ok(_) => {
-                        bevy::log::info!("Image saved successfully to {:?}", target_path_clone);
+                        info!("Image saved successfully to {:?}", target_path_clone);
                         Ok(())
                     }
                     Err(e) => {
                         let error =
                             format!("Failed to save image to {:?}: {:?}", target_path_clone, e);
-                        bevy::log::error!("{}", error);
+                        error!("{}", error);
                         Err(error)
                     }
                 }
             }
             Err(e) => {
                 let error = format!("Failed to encode image to WebP: {:?}", e);
-                bevy::log::error!("{}", error);
+                error!("{}", error);
                 Err(error)
             }
         }
@@ -146,9 +143,7 @@ pub fn monitor_save_completion(
 ) {
     for (entity, mut active_task) in save_task_query.iter_mut() {
         // Poll the async task
-        if let Some(result) = bevy::tasks::block_on(bevy::tasks::futures_lite::future::poll_once(
-            &mut active_task.task,
-        )) {
+        if let Some(result) = block_on(futures_lite::future::poll_once(&mut active_task.task)) {
             // Task completed, send event
             save_completed_events.write(SaveCompleted {
                 task_id: active_task.task_id,
@@ -167,18 +162,15 @@ pub fn handle_save_completed(mut save_completed_events: EventReader<SaveComplete
     for event in save_completed_events.read() {
         match &event.result {
             Ok(_) => {
-                bevy::log::debug!(
+                debug!(
                     "Save task {} completed successfully for {:?}",
-                    event.task_id,
-                    event.path
+                    event.task_id, event.path
                 );
             }
             Err(e) => {
-                bevy::log::warn!(
+                warn!(
                     "Save task {} failed for {:?}: {}",
-                    event.task_id,
-                    event.path,
-                    e
+                    event.task_id, event.path, e
                 );
             }
         }

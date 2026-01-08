@@ -1,3 +1,5 @@
+use core::time::Duration;
+
 use bevy::{
     asset::{AssetEvent, AssetPath, AssetServer},
     ecs::event::{BufferedEvent, EventReader, EventWriter},
@@ -6,7 +8,32 @@ use bevy::{
     prelude::*,
 };
 
-use crate::preview::{PreviewCache, resize_image_for_preview};
+use crate::preview::{PreviewCache, PreviewConfig, resize_image_for_preview};
+
+/// Generates preview images for the specified resolutions and caches them.
+pub fn generate_previews_for_resolutions(
+    images: &mut Assets<Image>,
+    original_image: &Image,
+    original_handle: Handle<Image>,
+    path: &AssetPath<'static>,
+    asset_id: AssetId<Image>,
+    resolutions: &[u32],
+    cache: &mut PreviewCache,
+    timestamp: Duration,
+) {
+    for &resolution in resolutions {
+        if cache.get_by_path(path, Some(resolution)).is_some() {
+            continue;
+        }
+
+        let preview_handle = match resize_image_for_preview(original_image, resolution) {
+            Some(compressed) => images.add(compressed),
+            None => original_handle.clone(),
+        };
+
+        cache.insert(path, asset_id, resolution, preview_handle, timestamp);
+    }
+}
 
 /// Event emitted when a preview is ready.
 #[derive(Event, BufferedEvent, Debug, Clone)]
@@ -81,23 +108,24 @@ impl PreviewTaskManager {
 }
 
 /// Requests a preview for an image asset path.
-/// This is a helper that can be used in systems or other contexts.
 /// Returns the task ID for tracking.
+/// Uses highest configured resolution if resolution is None.
 pub fn request_image_preview<'a>(
     mut commands: Commands,
     mut task_manager: ResMut<PreviewTaskManager>,
-    cache: Res<PreviewCache>,
+    mut cache: ResMut<PreviewCache>,
+    config: Res<PreviewConfig>,
     asset_server: Res<AssetServer>,
     images: Res<Assets<Image>>,
     mut images_mut: ResMut<Assets<Image>>,
     mut preview_ready_events: EventWriter<PreviewReady>,
+    time: Res<Time<Real>>,
     path: impl Into<AssetPath<'a>>,
+    resolution: Option<u32>,
 ) -> u64 {
     let path: AssetPath<'static> = path.into().into_owned();
 
-    // Check cache first
-    if let Some(cache_entry) = cache.get_by_path(&path) {
-        // Cache hit - send ready event immediately
+    if let Some(cache_entry) = cache.get_by_path(&path, resolution) {
         let task_id = task_manager.create_task_id();
         preview_ready_events.write(PreviewReady {
             task_id,
@@ -107,30 +135,37 @@ pub fn request_image_preview<'a>(
         return task_id;
     }
 
-    // Cache miss - create request
     let task_id = task_manager.create_task_id();
     let handle: Handle<Image> = asset_server.load(&path);
 
-    // Check if image is already loaded
     if let Some(image) = images.get(&handle) {
-        // Image is already loaded, compress if needed and cache
-        let preview_image = if let Some(compressed) = resize_image_for_preview(image) {
-            images_mut.add(compressed)
-        } else {
-            handle.clone()
-        };
+        let image_clone = image.clone();
+        let asset_id = handle.id();
 
-        // Cache will be handled in handle_image_preview_events when the event is processed
+        generate_previews_for_resolutions(
+            &mut images_mut,
+            &image_clone,
+            handle.clone(),
+            &path,
+            asset_id,
+            &config.resolutions,
+            &mut cache,
+            time.elapsed(),
+        );
+
+        let preview_handle = cache
+            .get_by_path(&path, resolution)
+            .map(|entry| entry.image_handle.clone())
+            .unwrap_or_else(|| handle.clone());
 
         preview_ready_events.write(PreviewReady {
             task_id,
             path: path.clone(),
-            image_handle: preview_image,
+            image_handle: preview_handle,
         });
         return task_id;
     }
 
-    // Image not loaded yet - create pending request
     let entity = commands
         .spawn(PendingPreviewRequest {
             task_id,
@@ -141,10 +176,11 @@ pub fn request_image_preview<'a>(
     task_id
 }
 
-/// System that handles image asset events for previews and caches ready previews.
+/// System that handles image asset events for previews.
 pub fn handle_image_preview_events(
     mut commands: Commands,
     mut cache: ResMut<PreviewCache>,
+    config: Res<PreviewConfig>,
     asset_server: Res<AssetServer>,
     mut preview_ready_events: EventWriter<PreviewReady>,
     mut preview_failed_events: EventWriter<PreviewFailed>,
@@ -155,52 +191,41 @@ pub fn handle_image_preview_events(
     mut ready_events: EventReader<PreviewReady>,
     time: Res<Time<Real>>,
 ) {
-    // Cache previews from ready events
     for event in ready_events.read() {
-        // Cache the preview if not already cached
-        if cache.get_by_path(&event.path).is_none() {
-            let asset_id = event.image_handle.id();
-            cache.insert(
-                &event.path,
-                asset_id,
-                event.image_handle.clone(),
-                time.elapsed(),
-            );
-        }
+        let _ = cache.get_by_path(&event.path, None);
     }
     for event in asset_events.read() {
         match event {
             AssetEvent::LoadedWithDependencies { id } => {
-                // Find requests waiting for this image
                 for (entity, request) in requests.iter() {
                     let handle: Handle<Image> = asset_server.load(&request.path);
                     if handle.id() == *id {
                         if let Some(image) = images.get(&handle) {
-                            // Compress if needed
-                            let preview_image =
-                                if let Some(compressed) = resize_image_for_preview(image) {
-                                    images.add(compressed)
-                                } else {
-                                    handle.clone()
-                                };
+                            let image_clone = image.clone();
+                            let asset_id = handle.id();
 
-                            // Cache the preview
-                            let preview_id = preview_image.id();
-                            cache.insert(
+                            generate_previews_for_resolutions(
+                                &mut images,
+                                &image_clone,
+                                handle.clone(),
                                 &request.path,
-                                preview_id,
-                                preview_image.clone(),
+                                asset_id,
+                                &config.resolutions,
+                                &mut cache,
                                 time.elapsed(),
                             );
 
-                            // Send ready event
+                            let preview_image = cache
+                                .get_by_path(&request.path, None)
+                                .map(|entry| entry.image_handle.clone())
+                                .unwrap_or_else(|| handle.clone());
+
                             preview_ready_events.write(PreviewReady {
                                 task_id: request.task_id,
                                 path: request.path.clone(),
                                 image_handle: preview_image,
                             });
 
-                            // Cleanup
                             task_manager.remove_task(request.task_id);
                             commands.entity(entity).despawn();
                         }
@@ -208,7 +233,8 @@ pub fn handle_image_preview_events(
                 }
             }
             AssetEvent::Removed { id } => {
-                // Find requests for removed image
+                cache.remove_by_id(*id, None);
+
                 for (entity, request) in requests.iter() {
                     let handle: Handle<Image> = asset_server.load(&request.path);
                     if handle.id() == *id {

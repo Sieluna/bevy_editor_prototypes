@@ -8,7 +8,7 @@ use bevy::{
 
 use crate::{
     asset::{AssetLoader, LoadPriority},
-    preview::{PreviewCache, resize_image_for_preview},
+    preview::{PreviewCache, PreviewConfig},
 };
 
 #[derive(Component, Deref)]
@@ -83,7 +83,7 @@ pub fn preview_handler(
         let asset_path: AssetPath<'static> = path.clone().into();
 
         // Check cache first
-        if let Some(cache_entry) = cache.get_by_path(&asset_path) {
+        if let Some(cache_entry) = cache.get_by_path(&asset_path, None) {
             // Cache hit - use cached preview immediately
             commands
                 .entity(entity)
@@ -112,6 +112,7 @@ pub fn preview_handler(
 pub fn handle_preview_load_completed(
     mut commands: Commands,
     mut cache: ResMut<PreviewCache>,
+    config: Res<PreviewConfig>,
     mut images: ResMut<Assets<Image>>,
     mut load_completed_events: EventReader<crate::asset::AssetLoadCompleted>,
     pending_query: Query<(Entity, &PendingPreviewLoad)>,
@@ -124,21 +125,27 @@ pub fn handle_preview_load_completed(
             if pending.task_id == event.task_id {
                 // Check if image is loaded
                 if let Some(image) = images.get(&event.handle) {
-                    // Compress if needed
-                    let preview_image = if let Some(compressed) = resize_image_for_preview(image) {
-                        images.add(compressed)
-                    } else {
-                        event.handle.clone()
-                    };
+                    // Clone image data before mutable operations
+                    let image_clone = image.clone();
+                    let asset_id = event.handle.id();
 
-                    // Cache the preview
-                    let preview_id = preview_image.id();
-                    cache.insert(
+                    // Generate previews for all configured resolutions
+                    crate::preview::generate_previews_for_resolutions(
+                        &mut images,
+                        &image_clone,
+                        event.handle.clone(),
                         &pending.asset_path,
-                        preview_id,
-                        preview_image.clone(),
+                        asset_id,
+                        &config.resolutions,
+                        &mut cache,
                         time.elapsed(),
                     );
+
+                    // Get the highest resolution preview (or original if none generated)
+                    let preview_image = cache
+                        .get_by_path(&pending.asset_path, None)
+                        .map(|entry| entry.image_handle.clone())
+                        .unwrap_or_else(|| event.handle.clone());
 
                     // Update ImageNode
                     if let Ok(mut image_node) = image_node_query.get_mut(entity) {

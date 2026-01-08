@@ -12,7 +12,8 @@ use bevy::{
 };
 use bevy_asset_preview::{
     ActiveSaveTask, AssetHotReloaded, AssetLoadCompleted, AssetLoadFailed, AssetLoader,
-    PreviewCache, SaveCompleted, SaveTaskTracker, monitor_save_completion, save_image,
+    PreviewCache, PreviewConfig, SaveCompleted, SaveTaskTracker, monitor_save_completion,
+    save_image,
 };
 use tempfile::TempDir;
 
@@ -86,7 +87,7 @@ fn wait_for_save_completion(
         iterations += 1;
 
         let world = app.world();
-        let save_events = world.resource::<bevy::ecs::event::Events<SaveCompleted>>();
+        let save_events = world.resource::<Events<SaveCompleted>>();
         let mut cursor = save_events.get_cursor();
         for event in cursor.read(save_events) {
             if processed_task_ids.insert(event.task_id) {
@@ -159,7 +160,6 @@ fn wait_for_load_completion(
     (completed_events, max_active_tasks, initial_queue_len)
 }
 
-
 struct CleanupState {
     pending_cleaned: bool,
     active_task_cleaned: bool,
@@ -170,7 +170,9 @@ struct CleanupState {
 fn test_error_handling_for_nonexistent_file(app: &mut App) {
     let non_existent_entity = app
         .world_mut()
-        .spawn(bevy_asset_preview::PreviewAsset(PathBuf::from("non_existent.png")))
+        .spawn(bevy_asset_preview::PreviewAsset(PathBuf::from(
+            "non_existent.png",
+        )))
         .id();
     app.update();
 
@@ -188,14 +190,15 @@ fn test_error_handling_for_nonexistent_file(app: &mut App) {
     );
 
     let cleanup_state = wait_for_failure_cleanup(app, non_existent_entity, non_existent_task_id);
-    verify_failure_cleanup_complete(app, non_existent_entity, non_existent_task_id, &cleanup_state);
+    verify_failure_cleanup_complete(
+        app,
+        non_existent_entity,
+        non_existent_task_id,
+        &cleanup_state,
+    );
 }
 
-fn wait_for_failure_cleanup(
-    app: &mut App,
-    entity: Entity,
-    task_id: u64,
-) -> CleanupState {
+fn wait_for_failure_cleanup(app: &mut App, entity: Entity, task_id: u64) -> CleanupState {
     let mut iterations = 0;
     const MAX_ITERATIONS: usize = 2000;
 
@@ -203,14 +206,18 @@ fn wait_for_failure_cleanup(
     let mut active_task_cleaned = false;
     let mut task_path_cleaned = false;
 
-    let mut active_task_query = app.world_mut().query::<&bevy_asset_preview::ActiveLoadTask>();
+    let mut active_task_query = app
+        .world_mut()
+        .query::<&bevy_asset_preview::ActiveLoadTask>();
 
     while iterations < MAX_ITERATIONS {
         app.update();
         iterations += 1;
         let world = app.world();
 
-        pending_cleaned = !world.entity(entity).contains::<bevy_asset_preview::PendingPreviewLoad>();
+        pending_cleaned = !world
+            .entity(entity)
+            .contains::<bevy_asset_preview::PendingPreviewLoad>();
 
         let has_active_task_now = active_task_query
             .iter(world)
@@ -239,11 +246,15 @@ fn verify_failure_cleanup_complete(
     task_id: u64,
     state: &CleanupState,
 ) {
-    let mut active_task_query = app.world_mut().query::<&bevy_asset_preview::ActiveLoadTask>();
+    let mut active_task_query = app
+        .world_mut()
+        .query::<&bevy_asset_preview::ActiveLoadTask>();
     let world = app.world();
 
     assert!(
-        !world.entity(entity).contains::<bevy_asset_preview::PendingPreviewLoad>(),
+        !world
+            .entity(entity)
+            .contains::<bevy_asset_preview::PendingPreviewLoad>(),
         "PendingPreviewLoad MUST be cleaned up (iterations: {})",
         state.iterations
     );
@@ -265,7 +276,9 @@ fn verify_failure_cleanup_complete(
     );
 
     assert!(
-        !world.entity(entity).contains::<bevy_asset_preview::PreviewAsset>(),
+        !world
+            .entity(entity)
+            .contains::<bevy_asset_preview::PreviewAsset>(),
         "PreviewAsset must be cleaned up after failure"
     );
 
@@ -288,13 +301,17 @@ fn test_boundary_conditions(app: &mut App) {
         "Empty path should have ImageNode (placeholder)"
     );
     assert!(
-        !world.entity(empty_path_entity).contains::<bevy_asset_preview::PendingPreviewLoad>(),
+        !world
+            .entity(empty_path_entity)
+            .contains::<bevy_asset_preview::PendingPreviewLoad>(),
         "Empty path should not have PendingPreviewLoad"
     );
 
     let special_char_entity = app
         .world_mut()
-        .spawn(bevy_asset_preview::PreviewAsset(PathBuf::from("test_file_123.png")))
+        .spawn(bevy_asset_preview::PreviewAsset(PathBuf::from(
+            "test_file_123.png",
+        )))
         .id();
     app.update();
 
@@ -511,14 +528,20 @@ fn test_complete_workflow() {
 
     let world = app.world();
     let cache = world.resource::<PreviewCache>();
+    let config = world.resource::<PreviewConfig>();
     let images = world.resource::<Assets<Image>>();
 
     assert!(!cache.is_empty(), "Cache should not be empty");
+
+    // Each image should have previews for all configured resolutions
+    let expected_cache_entries = image_files.len() * config.resolutions.len();
     assert_eq!(
         cache.len(),
+        expected_cache_entries,
+        "Cache should contain exactly {} entries ({} images × {} resolutions)",
+        expected_cache_entries,
         image_files.len(),
-        "Cache should contain exactly {} entries",
-        image_files.len()
+        config.resolutions.len()
     );
 
     for (entity, filename, is_image) in &file_entities {
@@ -539,43 +562,77 @@ fn test_complete_workflow() {
             );
 
             let asset_path: AssetPath<'static> = AssetPath::from(filename.as_str()).into_owned();
-            let cache_entry_by_path = cache.get_by_path(&asset_path);
-            assert!(
-                cache_entry_by_path.is_some(),
-                "Image file {} should be cached",
-                filename
-            );
 
-            let entry = cache_entry_by_path.unwrap();
-            let cache_entry_by_id = cache.get_by_id(entry.asset_id);
+            // Check that all configured resolutions are cached
+            for &resolution in &config.resolutions {
+                let cache_entry_by_path = cache.get_by_path(&asset_path, Some(resolution));
+                assert!(
+                    cache_entry_by_path.is_some(),
+                    "Image file {} should have {}px resolution cached",
+                    filename,
+                    resolution
+                );
+
+                let entry = cache_entry_by_path.unwrap();
+                assert_eq!(
+                    entry.resolution, resolution,
+                    "Cached entry should have correct resolution {} for {}",
+                    resolution, filename
+                );
+
+                let cache_entry_by_id = cache.get_by_id(entry.asset_id, Some(resolution));
+                assert!(
+                    cache_entry_by_id.is_some(),
+                    "Cache entry should be accessible by ID for {} at {}px",
+                    filename,
+                    resolution
+                );
+                assert_eq!(
+                    entry.image_handle.id(),
+                    cache_entry_by_id.unwrap().image_handle.id(),
+                    "Cache entries by path and ID should match for {} at {}px",
+                    filename,
+                    resolution
+                );
+            }
+
+            // Check that highest resolution query works
+            let highest_entry = cache.get_by_path(&asset_path, None);
             assert!(
-                cache_entry_by_id.is_some(),
-                "Cache entry should be accessible by ID for {}",
+                highest_entry.is_some(),
+                "Image file {} should have highest resolution cached",
                 filename
             );
+            let highest_entry = highest_entry.unwrap();
+            let highest_resolution = highest_entry.resolution;
+            let expected_highest = *config.resolutions.iter().max().unwrap();
             assert_eq!(
-                entry.image_handle.id(),
-                cache_entry_by_id.unwrap().image_handle.id(),
-                "Cache entries by path and ID should match for {}",
+                highest_resolution,
+                expected_highest,
+                "Highest resolution should be {} for {}",
+                expected_highest,
                 filename
             );
 
+            // Validate highest resolution entry properties
             assert!(
-                !entry.timestamp.is_zero(),
+                !highest_entry.timestamp.is_zero(),
                 "Cache entry for {} should have valid timestamp, got: {:?}",
                 filename,
-                entry.timestamp
+                highest_entry.timestamp
             );
             assert!(
-                entry.image_handle.is_strong(),
+                highest_entry.image_handle.is_strong(),
                 "Cache entry for {} should have strong handle",
                 filename
             );
 
+            // Check compression for large images (using highest resolution)
             if filename == "texture.png" || filename == "sprite.png" {
-                if let Some(preview_image) = images.get(&entry.image_handle) {
+                if let Some(preview_image) = images.get(&highest_entry.image_handle) {
+                    let max_dimension = expected_highest;
                     assert!(
-                        preview_image.width() <= 256 && preview_image.height() <= 256,
+                        preview_image.width() <= max_dimension && preview_image.height() <= max_dimension,
                         "Large image {} should be compressed, got {}x{}",
                         filename,
                         preview_image.width(),
@@ -584,11 +641,12 @@ fn test_complete_workflow() {
                 }
             }
 
+            // Check aspect ratio for wide image (using highest resolution)
             if filename == "sprite.png" {
-                if let Some(preview_image) = images.get(&entry.image_handle) {
-                    // Original: 800x200 = 4:1, compressed should be 256:64
-                    let expected_height = (200.0 * 256.0 / 800.0) as u32;
-                    assert_eq!(preview_image.width(), 256, "Wide image width should be 256");
+                if let Some(preview_image) = images.get(&highest_entry.image_handle) {
+                    // Original: 800x200 = 4:1, compressed should maintain aspect ratio
+                    let expected_height = (200.0 * expected_highest as f32 / 800.0) as u32;
+                    assert_eq!(preview_image.width(), expected_highest, "Wide image width should be {}", expected_highest);
                     assert_eq!(
                         preview_image.height(),
                         expected_height,
@@ -696,21 +754,26 @@ fn test_complete_workflow() {
         .query::<&bevy_asset_preview::ActiveLoadTask>();
     let world = app.world();
     let cache = world.resource::<PreviewCache>();
+    let config = world.resource::<bevy_asset_preview::PreviewConfig>();
     let loader = world.resource::<AssetLoader>();
 
     assert!(!cache.is_empty(), "Cache should not be empty");
+    // Each image should have previews for all configured resolutions
+    let expected_cache_entries = image_files.len() * config.resolutions.len();
     assert_eq!(
         cache.len(),
+        expected_cache_entries,
+        "Cache should contain all {} image previews ({} images × {} resolutions)",
+        expected_cache_entries,
         image_files.len(),
-        "Cache should contain all {} image previews",
-        image_files.len()
+        config.resolutions.len()
     );
 
     let non_existent_active_tasks = active_task_query
         .iter(world)
         .filter(|active_task| active_task.path.to_string().contains("non_existent"))
         .count();
-    
+
     assert_eq!(
         non_existent_active_tasks, 0,
         "All non-existent file tasks must be cleaned up (found {} remaining)",
@@ -719,13 +782,13 @@ fn test_complete_workflow() {
 
     let actual_active_tasks = loader.active_tasks();
     let actual_queue_len = loader.queue_len();
-    
+
     assert_eq!(
         actual_active_tasks, 0,
         "All active tasks must be cleaned up after failure handling (found {} remaining)",
         actual_active_tasks
     );
-    
+
     assert!(
         actual_queue_len <= 1,
         "Queue should have at most 1 task, found {}",

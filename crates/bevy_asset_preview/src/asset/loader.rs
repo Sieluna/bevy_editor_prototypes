@@ -276,7 +276,7 @@ pub fn poll_load_tasks(
 ) {
     for (entity, active_task) in task_query.iter_mut() {
         if asset_server.is_loaded_with_dependencies(&active_task.handle) {
-            bevy::log::info!("Asset loaded successfully: {:?}", active_task.path);
+            info!("Asset loaded successfully: {:?}", active_task.path);
 
             loader.finish_task();
             let handle_id = active_task.handle.id();
@@ -285,7 +285,7 @@ pub fn poll_load_tasks(
         } else {
             let load_state = asset_server.load_state(&active_task.handle);
             if let LoadState::Failed(_) = load_state {
-                bevy::log::warn!("Asset load failed: {:?}", active_task.path);
+                warn!("Asset load failed: {:?}", active_task.path);
 
                 loader.finish_task();
                 let handle_id = active_task.handle.id();

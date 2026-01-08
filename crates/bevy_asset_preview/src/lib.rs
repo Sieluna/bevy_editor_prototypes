@@ -28,8 +28,9 @@ pub struct AssetPreviewPlugin;
 impl Plugin for AssetPreviewPlugin {
     fn build(&self, app: &mut App) {
         // Initialize resources
-        app.init_resource::<AssetLoader>();
-        app.init_resource::<PreviewCache>();
+        app.init_resource::<asset::AssetLoader>();
+        app.init_resource::<preview::PreviewCache>();
+        app.init_resource::<preview::PreviewConfig>();
 
         // Register events
         app.add_event::<asset::AssetLoadCompleted>();
