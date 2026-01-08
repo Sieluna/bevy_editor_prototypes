@@ -356,9 +356,19 @@ mod tests {
         let mut loader = AssetLoader::new(4);
         let task_id = loader.submit("test.png", LoadPriority::CurrentAccess);
 
+        // Verify task path is stored
+        assert_eq!(
+            loader.get_task_path(task_id),
+            Some(&AssetPath::from("test.png"))
+        );
+
+        // Use a mock handle ID for testing
+        // Note: In a real scenario, we'd use actual asset handles, but for unit testing
+        // we can use default values to test the mapping logic
         let handle_id: AssetId<Image> = AssetId::default();
         let entity = Entity::PLACEHOLDER;
-        loader.register_task(task_id, entity, Handle::<Image>::default());
+        let handle = Handle::<Image>::default();
+        loader.register_task(task_id, entity, handle);
 
         assert_eq!(loader.get_entity_by_handle(handle_id), Some(entity));
         assert_eq!(loader.get_handle_id_by_task(task_id), Some(handle_id));
@@ -367,5 +377,35 @@ mod tests {
 
         assert_eq!(loader.get_entity_by_handle(handle_id), None);
         assert_eq!(loader.get_handle_id_by_task(task_id), None);
+        // Verify task path is also removed
+        assert_eq!(loader.get_task_path(task_id), None);
+    }
+
+    #[test]
+    fn test_get_task_path() {
+        let mut loader = AssetLoader::new(4);
+
+        // Test with non-existent task
+        assert_eq!(loader.get_task_path(999), None);
+
+        // Test with existing task
+        let task_id = loader.submit("test.png", LoadPriority::Preload);
+        assert_eq!(
+            loader.get_task_path(task_id),
+            Some(&AssetPath::from("test.png"))
+        );
+
+        // Test with multiple tasks
+        let task_id2 = loader.submit("test2.png", LoadPriority::CurrentAccess);
+        assert_eq!(
+            loader.get_task_path(task_id2),
+            Some(&AssetPath::from("test2.png"))
+        );
+
+        // Verify both paths are stored
+        assert_eq!(
+            loader.get_task_path(task_id),
+            Some(&AssetPath::from("test.png"))
+        );
     }
 }

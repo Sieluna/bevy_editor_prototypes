@@ -164,7 +164,7 @@ pub fn handle_image_preview_events(
                 &event.path,
                 asset_id,
                 event.image_handle.clone(),
-                time.elapsed().as_secs(),
+                time.elapsed(),
             );
         }
     }
@@ -190,7 +190,7 @@ pub fn handle_image_preview_events(
                                 &request.path,
                                 preview_id,
                                 preview_image.clone(),
-                                time.elapsed().as_secs(),
+                                time.elapsed(),
                             );
 
                             // Send ready event

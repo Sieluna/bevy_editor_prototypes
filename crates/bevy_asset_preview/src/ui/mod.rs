@@ -137,7 +137,7 @@ pub fn handle_preview_load_completed(
                         &pending.asset_path,
                         preview_id,
                         preview_image.clone(),
-                        time.elapsed().as_secs(),
+                        time.elapsed(),
                     );
 
                     // Update ImageNode
@@ -152,5 +152,89 @@ pub fn handle_preview_load_completed(
                 break;
             }
         }
+    }
+}
+
+/// System that handles failed asset loads and cleans up pending requests.
+pub fn handle_preview_load_failed(
+    mut commands: Commands,
+    mut load_failed_events: EventReader<crate::asset::AssetLoadFailed>,
+    pending_query: Query<(Entity, &PendingPreviewLoad)>,
+) {
+    for event in load_failed_events.read() {
+        // Find entities waiting for this task
+        for (entity, pending) in pending_query.iter() {
+            if pending.task_id == event.task_id {
+                // Cleanup - remove PendingPreviewLoad, keep placeholder image
+                commands.entity(entity).remove::<PendingPreviewLoad>();
+                commands.entity(entity).remove::<PreviewAsset>();
+                break;
+            }
+        }
+    }
+}
+
+/// System that periodically checks for failed asset loads and cleans them up.
+/// This is a fallback for cases where AssetEvent::Removed is not emitted.
+/// It checks both active tasks and directly loads the asset to check its state.
+pub fn check_failed_loads(
+    mut commands: Commands,
+    mut loader: ResMut<crate::asset::AssetLoader>,
+    asset_server: Res<AssetServer>,
+    pending_query: Query<(Entity, &PendingPreviewLoad)>,
+    task_query: Query<(Entity, &crate::asset::ActiveLoadTask)>,
+) {
+    use bevy::asset::LoadState;
+
+    for (entity, pending) in pending_query.iter() {
+        // Try to find the active task for this pending load to get the correct handle
+        let mut active_task_entity_opt = None;
+        let mut handle_opt = None;
+        for (task_entity, active_task) in task_query.iter() {
+            if active_task.task_id == pending.task_id {
+                handle_opt = Some(active_task.handle.clone());
+                active_task_entity_opt = Some((task_entity, active_task));
+                break;
+            }
+        }
+
+        // Get handle - use active task's handle if available, otherwise load directly
+        // Note: asset_server.load() is idempotent - calling it multiple times returns the same handle
+        let handle: Handle<Image> =
+            handle_opt.unwrap_or_else(|| asset_server.load(&pending.asset_path));
+        let load_state = asset_server.load_state(&handle);
+
+        // Check if the asset load has failed
+        if let LoadState::Failed(_) = load_state {
+            // Load failed - cleanup PendingPreviewLoad
+            commands.entity(entity).remove::<PendingPreviewLoad>();
+            commands.entity(entity).remove::<PreviewAsset>();
+
+            // Also cleanup ActiveLoadTask if it exists
+            if let Some((task_entity, active_task)) = active_task_entity_opt {
+                loader.finish_task();
+                loader.cleanup_task(active_task.task_id, active_task.handle.id());
+                commands.entity(task_entity).despawn();
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::path::PathBuf;
+
+    use super::*;
+
+    #[test]
+    fn test_is_image_file() {
+        assert!(is_image_file(PathBuf::from("test.png").as_path()));
+        assert!(is_image_file(PathBuf::from("test.jpg").as_path()));
+        assert!(is_image_file(PathBuf::from("test.webp").as_path()));
+        assert!(is_image_file(PathBuf::from("test.TGA").as_path())); // Case insensitive
+
+        assert!(!is_image_file(PathBuf::from("test.txt").as_path()));
+        assert!(!is_image_file(PathBuf::from("test.rs").as_path()));
+        assert!(!is_image_file(PathBuf::from("test").as_path())); // No extension
     }
 }

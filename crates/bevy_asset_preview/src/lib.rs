@@ -49,7 +49,12 @@ impl Plugin for AssetPreviewPlugin {
         // Handle preview load completion and update UI
         app.add_systems(
             Update,
-            ui::handle_preview_load_completed.after(asset::handle_asset_events),
+            (
+                ui::handle_preview_load_completed,
+                ui::handle_preview_load_failed,
+                ui::check_failed_loads,
+            )
+                .after(asset::handle_asset_events),
         );
     }
 }
