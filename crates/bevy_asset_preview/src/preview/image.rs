@@ -1,9 +1,7 @@
 use core::time::Duration;
 
 use bevy::{
-    asset::{AssetEvent, AssetPath, AssetServer, RenderAssetUsages, UntypedAssetId},
-    ecs::event::{EventReader, EventWriter},
-    image::Image,
+    asset::{AssetPath, RenderAssetUsages, UntypedAssetId},
     prelude::*,
 };
 

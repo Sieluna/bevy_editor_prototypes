@@ -1,7 +1,4 @@
-use bevy::{
-    asset::AssetPath, image::Image, mesh::Mesh, pbr::StandardMaterial, prelude::*,
-    render::view::screenshot::Screenshot, scene::Scene,
-};
+use bevy::{asset::AssetPath, prelude::*, render::view::screenshot::Screenshot};
 
 use crate::preview::{
     PreviewConfig, PreviewMode, PreviewRequestType,

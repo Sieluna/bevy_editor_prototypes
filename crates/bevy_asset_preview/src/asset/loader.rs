@@ -1,13 +1,12 @@
 use std::collections::BinaryHeap;
 
 use bevy::{
-    asset::{AssetEvent, AssetId, AssetPath, AssetServer, Handle, LoadState},
-    ecs::event::{BufferedEvent, Event},
+    asset::{AssetPath, LoadState},
     platform::collections::HashMap,
     prelude::*,
 };
 
-use crate::asset::{LoadPriority, LoadTask};
+use crate::asset::{AssetError, LoadPriority, LoadTask};
 
 /// Active asynchronous loading task.
 #[derive(Component)]
@@ -32,7 +31,7 @@ pub struct AssetLoadCompleted {
 pub struct AssetLoadFailed {
     pub task_id: u64,
     pub path: AssetPath<'static>,
-    pub error: String,
+    pub error: AssetError,
 }
 
 /// Event emitted when an asset is hot-reloaded.
@@ -212,11 +211,34 @@ pub fn handle_asset_events(
     mut commands: Commands,
     mut loader: ResMut<AssetLoader>,
     mut asset_events: EventReader<AssetEvent<Image>>,
+    mut load_failed_events_bevy: EventReader<bevy::asset::AssetLoadFailedEvent<Image>>,
+    asset_server: Res<AssetServer>,
     mut load_completed_events: EventWriter<AssetLoadCompleted>,
     mut load_failed_events: EventWriter<AssetLoadFailed>,
     mut hot_reload_events: EventWriter<AssetHotReloaded>,
     task_query: Query<&ActiveLoadTask>,
 ) {
+    // Handle Bevy's AssetLoadFailedEvent
+    for event in load_failed_events_bevy.read() {
+        if let Some(entity) = loader.get_entity_by_handle(event.id) {
+            if let Ok(active_task) = task_query.get(entity) {
+                load_failed_events.write(AssetLoadFailed {
+                    task_id: active_task.task_id,
+                    path: active_task.path.clone(),
+                    error: AssetError::AssetLoadFailed {
+                        path: active_task.path.clone(),
+                        reason: format!("{:?}", event.error),
+                    },
+                });
+
+                loader.finish_task();
+                loader.cleanup_task(active_task.task_id, event.id);
+                commands.entity(entity).despawn();
+            }
+        }
+    }
+
+    // Handle AssetEvent
     for event in asset_events.read() {
         match event {
             AssetEvent::LoadedWithDependencies { id } => {
@@ -241,7 +263,9 @@ pub fn handle_asset_events(
                         load_failed_events.write(AssetLoadFailed {
                             task_id: active_task.task_id,
                             path: active_task.path.clone(),
-                            error: "Asset was removed (possibly failed to load)".to_string(),
+                            error: AssetError::AssetRemoved {
+                                path: active_task.path.clone(),
+                            },
                         });
 
                         loader.finish_task();
@@ -263,6 +287,31 @@ pub fn handle_asset_events(
             }
             _ => {}
         }
+    }
+
+    // Fallback: Check load state for failed tasks
+    let mut failed_entities = Vec::new();
+    for active_task in task_query.iter() {
+        let load_state = asset_server.load_state(&active_task.handle);
+        if let bevy::asset::LoadState::Failed(_) = load_state {
+            if let Some(entity) = loader.get_entity_by_handle(active_task.handle.id()) {
+                load_failed_events.write(AssetLoadFailed {
+                    task_id: active_task.task_id,
+                    path: active_task.path.clone(),
+                    error: AssetError::AssetLoadFailed {
+                        path: active_task.path.clone(),
+                        reason: "Asset load failed".to_string(),
+                    },
+                });
+
+                loader.finish_task();
+                loader.cleanup_task(active_task.task_id, active_task.handle.id());
+                failed_entities.push(entity);
+            }
+        }
+    }
+    for entity in failed_entities {
+        commands.entity(entity).despawn();
     }
 }
 

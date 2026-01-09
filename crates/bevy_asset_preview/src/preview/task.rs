@@ -1,7 +1,4 @@
-use bevy::{
-    asset::AssetPath, ecs::event::BufferedEvent, image::Image, platform::collections::HashMap,
-    prelude::*,
-};
+use bevy::{asset::AssetPath, platform::collections::HashMap, prelude::*};
 
 use crate::preview::{PreviewMode, PreviewRequestType};
 

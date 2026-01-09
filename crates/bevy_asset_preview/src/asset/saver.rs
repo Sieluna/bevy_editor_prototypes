@@ -2,12 +2,13 @@ use std::io::Cursor;
 
 use bevy::{
     asset::{AssetPath, io::ErasedAssetWriter},
-    ecs::event::{BufferedEvent, Event},
-    image::{Image, ImageFormat},
     platform::collections::HashMap,
     prelude::*,
     tasks::{IoTaskPool, Task, block_on, futures_lite},
 };
+use image::ImageFormat;
+
+use crate::asset::AssetError;
 
 /// Active save task tracking component.
 #[derive(Component)]
@@ -15,7 +16,7 @@ pub struct ActiveSaveTask {
     pub task_id: u64,
     pub path: AssetPath<'static>,
     pub target_path: AssetPath<'static>,
-    pub task: Task<Result<(), String>>,
+    pub task: Task<Result<(), AssetError>>,
 }
 
 /// Event emitted when a save task completes.
@@ -23,7 +24,7 @@ pub struct ActiveSaveTask {
 pub struct SaveCompleted {
     pub task_id: u64,
     pub path: AssetPath<'static>,
-    pub result: Result<(), String>,
+    pub result: Result<(), AssetError>,
 }
 
 /// Resource for save task tracking.
@@ -50,6 +51,16 @@ impl SaveTaskTracker {
     pub fn mark_completed(&mut self, task_id: u64) {
         self.pending_saves.remove(&task_id);
     }
+
+    /// Returns the number of pending saves.
+    pub fn pending_count(&self) -> usize {
+        self.pending_saves.len()
+    }
+
+    /// Checks if a task ID is in pending saves.
+    pub fn is_pending(&self, task_id: u64) -> bool {
+        self.pending_saves.contains_key(&task_id)
+    }
 }
 
 /// Saves an image asset to the specified path asynchronously using AssetWriter abstraction.
@@ -58,20 +69,20 @@ pub fn save_image<'a>(
     target_path: impl Into<AssetPath<'a>>,
     images: &Assets<Image>,
     writer: impl ErasedAssetWriter,
-) -> Task<Result<(), String>> {
+) -> Task<Result<(), AssetError>> {
     let target_path: AssetPath<'static> = target_path.into().into_owned();
 
     let Some(image_data) = images.get(&image) else {
-        let error = format!("Image not found: {:?}", image);
-        return IoTaskPool::get().spawn(async move { Err(error) });
+        return IoTaskPool::get()
+            .spawn(async move { Err(AssetError::ImageNotFound { handle: image }) });
     };
 
     // Convert to dynamic image
     let dynamic_image = match image_data.clone().try_into_dynamic() {
         Ok(img) => img,
         Err(e) => {
-            let error = format!("Failed to convert image: {:?}", e);
-            return IoTaskPool::get().spawn(async move { Err(error) });
+            return IoTaskPool::get()
+                .spawn(async move { Err(AssetError::ImageConversionFailed(e.to_string())) });
         }
     };
 
@@ -93,44 +104,36 @@ pub fn save_image<'a>(
     task_pool.spawn(async move {
         // Create directory first
         if let Some(parent) = target_path_for_writer.parent() {
-            if let Err(e) = writer.create_directory(parent).await {
-                let error = format!("Failed to create directory {:?}: {:?}", parent, e);
-                error!("{}", error);
-                return Err(error);
-            }
+            writer.create_directory(parent).await.map_err(|e| {
+                AssetError::DirectoryCreationFailed {
+                    path: parent.to_path_buf(),
+                    reason: e.to_string(),
+                }
+            })?;
         }
 
-        // Encode PNG directly to memory
+        // Encode WebP directly to memory
         let mut cursor = Cursor::new(Vec::new());
-        match rgba_image.write_to(
-            &mut cursor,
-            ImageFormat::WebP.as_image_crate_format().unwrap(), // unwrap is safe because we enable bevy webp feature
-        ) {
-            Ok(_) => {
-                let webp_bytes = cursor.into_inner();
-                // Write via AssetWriter (atomic operation)
-                match writer
-                    .write_bytes(&target_path_for_writer, &webp_bytes)
-                    .await
-                {
-                    Ok(_) => {
-                        info!("Image saved successfully to {:?}", target_path_clone);
-                        Ok(())
-                    }
-                    Err(e) => {
-                        let error =
-                            format!("Failed to save image to {:?}: {:?}", target_path_clone, e);
-                        error!("{}", error);
-                        Err(error)
-                    }
-                }
-            }
-            Err(e) => {
-                let error = format!("Failed to encode image to WebP: {:?}", e);
-                error!("{}", error);
-                Err(error)
-            }
-        }
+        rgba_image
+            .write_to(&mut cursor, ImageFormat::WebP)
+            .map_err(|e| AssetError::ImageEncodeFailed {
+                format: "WebP".to_string(),
+                reason: e.to_string(),
+            })?;
+
+        let webp_bytes = cursor.into_inner();
+
+        // Write via AssetWriter (atomic operation)
+        writer
+            .write_bytes(&target_path_for_writer, &webp_bytes)
+            .await
+            .map_err(|e| AssetError::FileWriteFailed {
+                path: target_path_clone.path().to_path_buf(),
+                reason: e.to_string(),
+            })?;
+
+        info!("Image saved successfully to {:?}", target_path_clone);
+        Ok(())
     })
 }
 
@@ -167,12 +170,64 @@ pub fn handle_save_completed(mut save_completed_events: EventReader<SaveComplete
                     event.task_id, event.path
                 );
             }
-            Err(e) => {
+            Err(err) => {
                 warn!(
                     "Save task {} failed for {:?}: {}",
-                    event.task_id, event.path, e
+                    event.task_id, event.path, err
                 );
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_task_id_generation() {
+        let mut tracker = SaveTaskTracker::default();
+        assert_eq!(tracker.create_task_id(), 0);
+        assert_eq!(tracker.create_task_id(), 1);
+        assert_eq!(tracker.create_task_id(), 2);
+    }
+
+    #[test]
+    fn test_pending_save_registration() {
+        let mut tracker = SaveTaskTracker::default();
+        let id1 = tracker.create_task_id();
+        let id2 = tracker.create_task_id();
+
+        let path1 = AssetPath::from("test1.png");
+        tracker.register_pending(id1, path1.clone());
+        assert_eq!(tracker.pending_count(), 1);
+        assert!(tracker.is_pending(id1));
+
+        let path2 = AssetPath::from("test2.png");
+        tracker.register_pending(id2, path2.clone());
+        assert_eq!(tracker.pending_count(), 2);
+        assert!(tracker.is_pending(id2));
+    }
+
+    #[test]
+    fn test_mark_completed() {
+        let mut tracker = SaveTaskTracker::default();
+        let id1 = tracker.create_task_id();
+        let id2 = tracker.create_task_id();
+
+        let path1 = AssetPath::from("test1.png");
+        let path2 = AssetPath::from("test2.png");
+        tracker.register_pending(id1, path1);
+        tracker.register_pending(id2, path2);
+
+        assert_eq!(tracker.pending_count(), 2);
+        tracker.mark_completed(id1);
+        assert_eq!(tracker.pending_count(), 1);
+        assert!(!tracker.is_pending(id1));
+        assert!(tracker.is_pending(id2));
+
+        tracker.mark_completed(id2);
+        assert_eq!(tracker.pending_count(), 0);
+        assert!(!tracker.is_pending(id2));
     }
 }

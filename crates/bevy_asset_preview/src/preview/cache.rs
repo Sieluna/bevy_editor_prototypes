@@ -4,7 +4,6 @@ use std::path::Path;
 
 use bevy::{
     asset::{AssetPath, UntypedAssetId},
-    image::Image,
     platform::collections::HashMap,
     prelude::*,
 };

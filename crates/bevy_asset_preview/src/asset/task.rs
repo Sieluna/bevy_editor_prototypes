@@ -1,3 +1,5 @@
+use core::cmp::Ordering;
+
 use bevy::asset::AssetPath;
 
 use crate::asset::LoadPriority;
@@ -33,16 +35,16 @@ impl PartialEq for LoadTask {
 impl Eq for LoadTask {}
 
 impl PartialOrd for LoadTask {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
 impl Ord for LoadTask {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+    fn cmp(&self, other: &Self) -> Ordering {
         // Sort by priority first (higher priority first, BinaryHeap is max-heap)
         match self.priority.cmp(&other.priority) {
-            std::cmp::Ordering::Equal => {
+            Ordering::Equal => {
                 // Same priority: sort by task ID (earlier tasks first)
                 // BinaryHeap is max-heap, so reverse ID comparison
                 other.task_id.cmp(&self.task_id)

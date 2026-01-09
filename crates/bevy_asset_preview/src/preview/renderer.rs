@@ -4,14 +4,8 @@ use bevy::{
         primitives::{Aabb, Sphere as CameraSphere},
         visibility::RenderLayers,
     },
-    image::Image,
-    light::{AmbientLight, DirectionalLight},
-    math::{Vec3A, primitives::Sphere},
-    mesh::{Mesh, Mesh3d},
-    pbr::{MeshMaterial3d, StandardMaterial},
     prelude::*,
     render::render_resource::TextureFormat,
-    scene::SceneRoot,
 };
 
 use crate::preview::PreviewConfig;
