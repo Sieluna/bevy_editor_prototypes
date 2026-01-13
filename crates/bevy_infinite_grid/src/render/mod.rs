@@ -2,6 +2,7 @@ use std::borrow::Cow;
 
 use bevy::{
     asset::{load_internal_asset, uuid_handle},
+    camera::visibility::VisibleEntities,
     core_pipeline::{core_2d::Transparent2d, core_3d::Transparent3d},
     ecs::{
         query::ROQueryItem,
@@ -12,11 +13,11 @@ use bevy::{
     },
     image::BevyDefault,
     math::FloatOrd,
+    mesh::PrimitiveTopology,
     pbr::MeshPipelineKey,
     prelude::*,
     render::{
         Extract, ExtractSchedule, Render, RenderApp, RenderSystems,
-        mesh::PrimitiveTopology,
         render_phase::{
             AddRenderCommand, DrawFunctions, PhaseItem, PhaseItemExtraIndex, RenderCommand,
             RenderCommandResult, SetItemPipeline, ViewSortedRenderPhases,
@@ -31,7 +32,7 @@ use bevy::{
         },
         renderer::{RenderDevice, RenderQueue},
         sync_world::RenderEntity,
-        view::{ExtractedView, RenderVisibleEntities, ViewTarget, VisibleEntities},
+        view::{ExtractedView, RenderVisibleEntities, ViewTarget},
     },
 };
 

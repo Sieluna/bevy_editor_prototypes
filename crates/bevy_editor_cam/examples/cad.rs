@@ -1,9 +1,9 @@
 //! Editor camera example with an expanded control scheme fit for CAD software.
 
 use bevy::{
-    anti_aliasing::taa::{TemporalAntiAliasPlugin, TemporalAntiAliasing},
-    core_pipeline::bloom::Bloom,
+    anti_alias::taa::{TemporalAntiAliasPlugin, TemporalAntiAliasing},
     pbr::ScreenSpaceAmbientOcclusion,
+    post_process::bloom::Bloom,
     prelude::*,
     render::camera::TemporalJitter,
 };

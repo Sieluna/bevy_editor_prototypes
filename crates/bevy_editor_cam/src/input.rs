@@ -1,5 +1,6 @@
 //! Provides a default input plugin for the camera. See [`DefaultInputPlugin`].
 
+use bevy::camera::prelude::*;
 use bevy::input::{
     mouse::{MouseScrollUnit, MouseWheel},
     prelude::*,
@@ -7,7 +8,6 @@ use bevy::input::{
 use bevy::math::{DVec2, DVec3, prelude::*};
 use bevy::platform::collections::HashMap;
 use bevy::reflect::prelude::*;
-use bevy::render::prelude::*;
 use bevy::transform::prelude::*;
 use bevy::window::PrimaryWindow;
 use bevy::{app::prelude::*, picking::pointer::PointerInput};
@@ -153,7 +153,7 @@ pub fn default_camera_inputs(
 pub struct CameraPointerMap(HashMap<PointerId, Entity>);
 
 /// Events used when implementing input systems for the [`EditorCam`].
-#[derive(Debug, Clone, Reflect, Event, BufferedEvent)]
+#[derive(Debug, Clone, Reflect, Event, Message)]
 pub enum EditorCamInputEvent {
     /// Send this event to start moving the camera. The anchor and inputs will be computed
     /// automatically until the [`EditorCamInputEvent::End`] event is received.

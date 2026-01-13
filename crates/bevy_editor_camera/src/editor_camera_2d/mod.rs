@@ -8,10 +8,10 @@
 use std::ops::RangeInclusive;
 
 use bevy::{
+    camera::CameraProjection,
     input::mouse::AccumulatedMouseScroll,
     math::bounding::{Aabb2d, BoundingVolume},
     prelude::*,
-    render::camera::CameraProjection,
     window::PrimaryWindow,
 };
 

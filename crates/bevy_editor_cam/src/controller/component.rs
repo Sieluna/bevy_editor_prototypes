@@ -5,12 +5,12 @@ use std::{
     time::Duration,
 };
 
+use bevy::camera::prelude::*;
 use bevy::ecs::prelude::*;
 use bevy::log::prelude::*;
 use bevy::math::{DMat4, DQuat, DVec2, DVec3, prelude::*};
 use bevy::platform::time::Instant;
 use bevy::reflect::prelude::*;
-use bevy::render::prelude::*;
 use bevy::time::prelude::*;
 use bevy::transform::prelude::*;
 use bevy::window::RequestRedraw;

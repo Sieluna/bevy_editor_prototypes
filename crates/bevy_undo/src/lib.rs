@@ -247,7 +247,7 @@ pub enum UndoSet {
 ///     }
 /// }
 /// ```
-#[derive(Event, BufferedEvent)]
+#[derive(Event, Message)]
 pub struct UndoRedoApplied<T> {
     /// The entity that was modified.
     pub entity: Entity,
@@ -485,7 +485,7 @@ pub enum ChangeResult {
     SuccessWithRemap(Vec<(Entity, Entity)>),
 }
 /// Represents an undo or redo operation to be performed on the change chain.
-#[derive(Event, BufferedEvent)]
+#[derive(Event, Message)]
 pub enum UndoRedo {
     /// Requests to undo the last change in the change chain.
     Undo,
@@ -495,7 +495,7 @@ pub enum UndoRedo {
 }
 
 /// Represents a new change to be added to the change chain.
-#[derive(Event, BufferedEvent, Clone)]
+#[derive(Event, Message, Clone)]
 pub struct NewChange {
     /// The change to be added to the change chain, wrapped in an Arc for shared ownership.
     pub change: Arc<dyn EditorChange + Send + Sync>,
@@ -682,7 +682,7 @@ impl<T: Component + Reflect + FromReflect> EditorChange for ReflectedComponentCh
             .entity_mut(e)
             .insert(<T as FromReflect>::from_reflect(&self.old_value).unwrap())
             .insert(OneFrameUndoIgnore::default());
-        world.write_event(UndoRedoApplied::<T> {
+        world.write_message(UndoRedoApplied::<T> {
             entity: e,
             _phantom: std::marker::PhantomData,
         });
@@ -794,7 +794,7 @@ impl<T: Component + Reflect + FromReflect> EditorChange for ReflectedAddedCompon
             .resource_mut::<UndoIgnoreStorage>()
             .storage
             .insert(dst, OneFrameUndoIgnore::default());
-        world.write_event(UndoRedoApplied::<T> {
+        world.write_message(UndoRedoApplied::<T> {
             entity: dst,
             _phantom: std::marker::PhantomData,
         });
@@ -915,7 +915,7 @@ impl<T: Component + Reflect + FromReflect> EditorChange for ReflectedRemovedComp
             .entity_mut(dst)
             .insert(<T as FromReflect>::from_reflect(&self.old_value).unwrap())
             .insert(OneFrameUndoIgnore::default());
-        world.write_event(UndoRedoApplied::<T> {
+        world.write_message(UndoRedoApplied::<T> {
             entity: dst,
             _phantom: std::marker::PhantomData,
         });
@@ -1532,7 +1532,7 @@ mod tests {
         app.update();
 
         let test_id = app.world_mut().spawn_empty().id();
-        app.world_mut().write_event(NewChange {
+        app.world_mut().write_message(NewChange {
             change: Arc::new(AddedEntity { entity: test_id }),
         });
 
@@ -1557,7 +1557,7 @@ mod tests {
 
         assert!(app.world_mut().get_entity(test_id).is_ok());
 
-        app.world_mut().write_event(UndoRedo::Undo);
+        app.world_mut().write_message(UndoRedo::Undo);
 
         app.update();
         app.update();
@@ -1569,7 +1569,7 @@ mod tests {
         assert!(app.world_mut().get::<Name>(test_id).is_none());
         assert!(app.world_mut().get_entity(test_id).is_ok());
 
-        app.world_mut().write_event(UndoRedo::Undo);
+        app.world_mut().write_message(UndoRedo::Undo);
         app.update();
         app.update();
 
@@ -1586,10 +1586,10 @@ mod tests {
         let test_id_1 = app.world_mut().spawn(UndoMarker).id();
         let test_id_2 = app.world_mut().spawn(UndoMarker).id();
 
-        app.world_mut().write_event(NewChange {
+        app.world_mut().write_message(NewChange {
             change: Arc::new(AddedEntity { entity: test_id_1 }),
         });
-        app.world_mut().write_event(NewChange {
+        app.world_mut().write_message(NewChange {
             change: Arc::new(AddedEntity { entity: test_id_2 }),
         });
 
@@ -1603,14 +1603,14 @@ mod tests {
         app.cleanup();
 
         app.world_mut().entity_mut(test_id_1).despawn();
-        app.world_mut().write_event(NewChange {
+        app.world_mut().write_message(NewChange {
             change: Arc::new(RemovedEntity { entity: test_id_1 }),
         });
 
         app.update();
         app.update();
 
-        app.world_mut().write_event(UndoRedo::Undo);
+        app.world_mut().write_message(UndoRedo::Undo);
 
         app.update();
         app.update();

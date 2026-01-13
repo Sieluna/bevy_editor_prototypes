@@ -1,10 +1,6 @@
 //! Renders two cameras to the same window to accomplish "split screen".
 
-use bevy::{
-    prelude::*,
-    render::{camera::Viewport, view::Hdr},
-    window::WindowResized,
-};
+use bevy::{camera::Viewport, prelude::*, render::view::Hdr, window::WindowResized};
 use bevy_editor_cam::prelude::*;
 
 fn main() {

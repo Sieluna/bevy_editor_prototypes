@@ -85,21 +85,35 @@ pub(crate) fn register_reflect_construct(app: &mut App) {
     app.register_type_data::<bevy::audio::PlaybackSettings, ReflectConstruct>();
     app.register_type_data::<bevy::audio::SpatialListener, ReflectConstruct>();
 
-    app.register_type_data::<bevy::anti_aliasing::contrast_adaptive_sharpening::ContrastAdaptiveSharpening, ReflectConstruct>();
-    app.register_type_data::<bevy::anti_aliasing::contrast_adaptive_sharpening::DenoiseCas, ReflectConstruct>();
-    app.register_type_data::<bevy::anti_aliasing::fxaa::Fxaa, ReflectConstruct>();
-    app.register_type_data::<bevy::anti_aliasing::smaa::Smaa, ReflectConstruct>();
-    app.register_type_data::<bevy::anti_aliasing::taa::TemporalAntiAliasing, ReflectConstruct>();
+    app.register_type_data::<bevy::anti_alias::contrast_adaptive_sharpening::ContrastAdaptiveSharpening, ReflectConstruct>();
+    app.register_type_data::<bevy::anti_alias::contrast_adaptive_sharpening::DenoiseCas, ReflectConstruct>();
+    app.register_type_data::<bevy::anti_alias::fxaa::Fxaa, ReflectConstruct>();
+    app.register_type_data::<bevy::anti_alias::smaa::Smaa, ReflectConstruct>();
+    app.register_type_data::<bevy::anti_alias::taa::TemporalAntiAliasing, ReflectConstruct>();
 
-    app.register_type_data::<bevy::core_pipeline::auto_exposure::AutoExposure, ReflectConstruct>();
-    app.register_type_data::<bevy::core_pipeline::bloom::Bloom, ReflectConstruct>();
-    app.register_type_data::<bevy::core_pipeline::core_2d::Camera2d, ReflectConstruct>();
-    app.register_type_data::<bevy::core_pipeline::core_3d::Camera3d, ReflectConstruct>();
-    app.register_type_data::<bevy::core_pipeline::dof::DepthOfField, ReflectConstruct>();
+    app.register_type_data::<bevy::camera::Camera, ReflectConstruct>();
+    app.register_type_data::<bevy::camera::Camera2d, ReflectConstruct>();
+    app.register_type_data::<bevy::camera::Camera3d, ReflectConstruct>();
+    app.register_type_data::<bevy::camera::CameraMainTextureUsages, ReflectConstruct>();
+    app.register_type_data::<bevy::camera::Exposure, ReflectConstruct>();
+    app.register_type_data::<bevy::camera::ManualTextureViewHandle, ReflectConstruct>();
+    app.register_type_data::<bevy::camera::CustomProjection, ReflectConstruct>();
+    app.register_type_data::<bevy::camera::visibility::Visibility, ReflectConstruct>();
+    app.register_type_data::<bevy::camera::visibility::InheritedVisibility, ReflectConstruct>();
+    app.register_type_data::<bevy::camera::visibility::VisibilityRange, ReflectConstruct>();
+    app.register_type_data::<bevy::camera::visibility::RenderLayers, ReflectConstruct>();
+    app.register_type_data::<bevy::camera::visibility::ViewVisibility, ReflectConstruct>();
+    app.register_type_data::<bevy::camera::visibility::VisibilityClass, ReflectConstruct>();
+    app.register_type_data::<bevy::camera::visibility::VisibleEntities, ReflectConstruct>();
+    app.register_type_data::<bevy::camera::visibility::CascadesVisibleEntities, ReflectConstruct>();
+    app.register_type_data::<bevy::camera::visibility::CubemapVisibleEntities, ReflectConstruct>();
+    app.register_type_data::<bevy::camera::visibility::VisibleMeshEntities, ReflectConstruct>();
+    app.register_type_data::<bevy::camera::primitives::Aabb, ReflectConstruct>();
+    app.register_type_data::<bevy::camera::primitives::CascadesFrusta, ReflectConstruct>();
+    app.register_type_data::<bevy::camera::primitives::CubemapFrusta, ReflectConstruct>();
+    app.register_type_data::<bevy::camera::primitives::Frustum, ReflectConstruct>();
 
-    app.register_type_data::<bevy::core_pipeline::motion_blur::MotionBlur, ReflectConstruct>();
     app.register_type_data::<bevy::core_pipeline::oit::OrderIndependentTransparencySettings, ReflectConstruct>();
-    app.register_type_data::<bevy::core_pipeline::post_process::ChromaticAberration, ReflectConstruct>();
     app.register_type_data::<bevy::core_pipeline::prepass::DepthPrepass, ReflectConstruct>();
     app.register_type_data::<bevy::core_pipeline::prepass::MotionVectorPrepass, ReflectConstruct>();
     app.register_type_data::<bevy::core_pipeline::prepass::NormalPrepass, ReflectConstruct>();
@@ -121,34 +135,38 @@ pub(crate) fn register_reflect_construct(app: &mut App) {
 
     app.register_type_data::<bevy::input::gamepad::GamepadSettings, ReflectConstruct>();
 
+    app.register_type_data::<bevy::light::LightProbe, ReflectConstruct>();
+    app.register_type_data::<bevy::light::AmbientLight, ReflectConstruct>();
+    app.register_type_data::<bevy::light::Cascades, ReflectConstruct>();
+    app.register_type_data::<bevy::light::CascadeShadowConfig, ReflectConstruct>();
+    app.register_type_data::<bevy::light::DirectionalLight, ReflectConstruct>();
+    app.register_type_data::<bevy::light::PointLight, ReflectConstruct>();
+    app.register_type_data::<bevy::light::SpotLight, ReflectConstruct>();
+    app.register_type_data::<bevy::light::IrradianceVolume, ReflectConstruct>();
+    app.register_type_data::<bevy::light::FogVolume, ReflectConstruct>();
+    app.register_type_data::<bevy::light::VolumetricFog, ReflectConstruct>();
+    app.register_type_data::<bevy::light::VolumetricLight, ReflectConstruct>();
+
     app.register_type_data::<bevy::pbr::Atmosphere, ReflectConstruct>();
     app.register_type_data::<bevy::pbr::AtmosphereSettings, ReflectConstruct>();
-    app.register_type_data::<bevy::pbr::CascadesVisibleEntities, ReflectConstruct>();
-    app.register_type_data::<bevy::pbr::CubemapVisibleEntities, ReflectConstruct>();
     app.register_type_data::<bevy::pbr::RenderCascadesVisibleEntities, ReflectConstruct>();
     app.register_type_data::<bevy::pbr::RenderCubemapVisibleEntities, ReflectConstruct>();
     app.register_type_data::<bevy::pbr::RenderVisibleMeshEntities, ReflectConstruct>();
-    app.register_type_data::<bevy::pbr::VisibleMeshEntities, ReflectConstruct>();
     app.register_type_data::<bevy::pbr::DistanceFog, ReflectConstruct>();
     app.register_type_data::<bevy::prelude::EnvironmentMapLight, ReflectConstruct>();
-    app.register_type_data::<bevy::pbr::irradiance_volume::IrradianceVolume, ReflectConstruct>();
-    app.register_type_data::<bevy::pbr::LightProbe, ReflectConstruct>();
-    app.register_type_data::<bevy::pbr::AmbientLight, ReflectConstruct>();
-    app.register_type_data::<bevy::pbr::Cascades, ReflectConstruct>();
-    app.register_type_data::<bevy::pbr::CascadeShadowConfig, ReflectConstruct>();
-    app.register_type_data::<bevy::pbr::DirectionalLight, ReflectConstruct>();
-    app.register_type_data::<bevy::pbr::PointLight, ReflectConstruct>();
-    app.register_type_data::<bevy::pbr::SpotLight, ReflectConstruct>();
     app.register_type_data::<bevy::pbr::Lightmap, ReflectConstruct>();
     //app.register_type_data::<bevy::pbr::MeshMaterial3d, ReflectConstruct>();
     app.register_type_data::<bevy::pbr::ScreenSpaceAmbientOcclusion, ReflectConstruct>();
     app.register_type_data::<bevy::pbr::ScreenSpaceReflections, ReflectConstruct>();
-    app.register_type_data::<bevy::pbr::FogVolume, ReflectConstruct>();
-    app.register_type_data::<bevy::pbr::VolumetricFog, ReflectConstruct>();
-    app.register_type_data::<bevy::pbr::VolumetricLight, ReflectConstruct>();
     app.register_type_data::<bevy::pbr::wireframe::NoWireframe, ReflectConstruct>();
     app.register_type_data::<bevy::pbr::wireframe::Wireframe, ReflectConstruct>();
     app.register_type_data::<bevy::pbr::wireframe::WireframeColor, ReflectConstruct>();
+
+    app.register_type_data::<bevy::post_process::auto_exposure::AutoExposure, ReflectConstruct>();
+    app.register_type_data::<bevy::post_process::bloom::Bloom, ReflectConstruct>();
+    app.register_type_data::<bevy::post_process::dof::DepthOfField, ReflectConstruct>();
+    app.register_type_data::<bevy::post_process::effect_stack::ChromaticAberration, ReflectConstruct>();
+    app.register_type_data::<bevy::post_process::motion_blur::MotionBlur, ReflectConstruct>();
 
     app.register_type_data::<bevy::picking::mesh_picking::ray_cast::RayCastBackfaces, ReflectConstruct>();
     app.register_type_data::<bevy::picking::mesh_picking::MeshPickingCamera, ReflectConstruct>();
@@ -157,44 +175,31 @@ pub(crate) fn register_reflect_construct(app: &mut App) {
     app.register_type_data::<bevy::picking::pointer::PointerLocation, ReflectConstruct>();
     app.register_type_data::<bevy::picking::pointer::PointerPress, ReflectConstruct>();
 
-    app.register_type_data::<bevy::render::camera::Camera, ReflectConstruct>();
-    app.register_type_data::<bevy::render::camera::CameraMainTextureUsages, ReflectConstruct>();
-    app.register_type_data::<bevy::render::camera::Exposure, ReflectConstruct>();
     app.register_type_data::<bevy::render::camera::TemporalJitter, ReflectConstruct>();
-    app.register_type_data::<bevy::render::camera::ManualTextureViewHandle, ReflectConstruct>();
-    app.register_type_data::<bevy::render::camera::CustomProjection, ReflectConstruct>();
     app.register_type_data::<bevy::render::experimental::occlusion_culling::OcclusionCulling, ReflectConstruct>();
-    app.register_type_data::<bevy::render::mesh::Mesh2d, ReflectConstruct>();
-    app.register_type_data::<bevy::render::mesh::Mesh3d, ReflectConstruct>();
-    app.register_type_data::<bevy::render::mesh::MeshTag, ReflectConstruct>();
-    app.register_type_data::<bevy::render::mesh::morph::MeshMorphWeights, ReflectConstruct>();
-    app.register_type_data::<bevy::render::mesh::morph::MorphWeights, ReflectConstruct>();
-    app.register_type_data::<bevy::render::mesh::skinning::SkinnedMesh, ReflectConstruct>();
-    app.register_type_data::<bevy::render::primitives::Aabb, ReflectConstruct>();
-    app.register_type_data::<bevy::render::primitives::CascadesFrusta, ReflectConstruct>();
-    app.register_type_data::<bevy::render::primitives::CubemapFrusta, ReflectConstruct>();
-    app.register_type_data::<bevy::render::primitives::Frustum, ReflectConstruct>();
     app.register_type_data::<bevy::render::sync_world::SyncToRenderWorld, ReflectConstruct>();
     app.register_type_data::<bevy::render::sync_world::TemporaryRenderEntity, ReflectConstruct>();
     app.register_type_data::<bevy::render::view::ColorGrading, ReflectConstruct>();
-    app.register_type_data::<bevy::render::view::visibility::Visibility, ReflectConstruct>();
-    app.register_type_data::<bevy::render::view::visibility::InheritedVisibility, ReflectConstruct>();
-    app.register_type_data::<bevy::render::view::visibility::VisibilityRange, ReflectConstruct>();
-    app.register_type_data::<bevy::render::view::visibility::RenderLayers, ReflectConstruct>();
     app.register_type_data::<bevy::render::view::visibility::RenderVisibleEntities, ReflectConstruct>();
-    app.register_type_data::<bevy::render::view::visibility::ViewVisibility, ReflectConstruct>();
-    app.register_type_data::<bevy::render::view::visibility::VisibilityClass, ReflectConstruct>();
-    app.register_type_data::<bevy::render::view::visibility::VisibleEntities, ReflectConstruct>();
 
     app.register_type_data::<bevy::scene::DynamicSceneRoot, ReflectConstruct>();
     app.register_type_data::<bevy::scene::SceneRoot, ReflectConstruct>();
 
     //app.register_type_data::<bevy::sprite::MeshMaterial2d, ReflectConstruct>();
-    app.register_type_data::<bevy::sprite::NoWireframe2d, ReflectConstruct>();
-    app.register_type_data::<bevy::sprite::Wireframe2d, ReflectConstruct>();
-    app.register_type_data::<bevy::sprite::Wireframe2dColor, ReflectConstruct>();
     app.register_type_data::<bevy::sprite::SpritePickingCamera, ReflectConstruct>();
     app.register_type_data::<bevy::sprite::Sprite, ReflectConstruct>();
+    app.register_type_data::<bevy::sprite::Text2d, ReflectConstruct>();
+
+    app.register_type_data::<bevy::sprite_render::NoWireframe2d, ReflectConstruct>();
+    app.register_type_data::<bevy::sprite_render::Wireframe2d, ReflectConstruct>();
+    app.register_type_data::<bevy::sprite_render::Wireframe2dColor, ReflectConstruct>();
+
+    app.register_type_data::<bevy::mesh::Mesh2d, ReflectConstruct>();
+    app.register_type_data::<bevy::mesh::Mesh3d, ReflectConstruct>();
+    app.register_type_data::<bevy::mesh::MeshTag, ReflectConstruct>();
+    app.register_type_data::<bevy::mesh::morph::MeshMorphWeights, ReflectConstruct>();
+    app.register_type_data::<bevy::mesh::morph::MorphWeights, ReflectConstruct>();
+    app.register_type_data::<bevy::mesh::skinning::SkinnedMesh, ReflectConstruct>();
 
     // app.register_type_data::<bevy::prelude::StateScoped, ReflectConstruct>();
 
@@ -205,7 +210,6 @@ pub(crate) fn register_reflect_construct(app: &mut App) {
     app.register_type_data::<bevy::text::TextFont, ReflectConstruct>();
     app.register_type_data::<bevy::text::TextLayout, ReflectConstruct>();
     app.register_type_data::<bevy::text::TextSpan, ReflectConstruct>();
-    app.register_type_data::<bevy::text::Text2d, ReflectConstruct>();
 
     app.register_type_data::<bevy::transform::components::GlobalTransform, ReflectConstruct>();
     app.register_type_data::<bevy::transform::components::Transform, ReflectConstruct>();
@@ -220,7 +224,7 @@ pub(crate) fn register_reflect_construct(app: &mut App) {
     app.register_type_data::<bevy::ui_render::BoxShadowSamples, ReflectConstruct>();
     app.register_type_data::<bevy::ui::CalculatedClip, ReflectConstruct>();
     app.register_type_data::<bevy::ui::ComputedNode, ReflectConstruct>();
-    app.register_type_data::<bevy::ui::ComputedNodeTarget, ReflectConstruct>();
+    app.register_type_data::<bevy::ui::ComputedUiTargetCamera, ReflectConstruct>();
     app.register_type_data::<bevy::ui::GlobalZIndex, ReflectConstruct>();
     app.register_type_data::<bevy::ui::LayoutConfig, ReflectConstruct>();
     app.register_type_data::<bevy::ui::Node, ReflectConstruct>();
