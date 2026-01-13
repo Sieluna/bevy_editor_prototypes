@@ -1,12 +1,9 @@
 //! 2d Viewport for Bevy
 use bevy::{
+    camera::{RenderTarget, visibility::RenderLayers},
     feathers::theme::ThemedText,
     prelude::*,
-    render::{
-        camera::RenderTarget,
-        render_resource::{Extent3d, TextureFormat, TextureUsages},
-        view::RenderLayers,
-    },
+    render::render_resource::{Extent3d, TextureFormat, TextureUsages},
     scene2::{CommandsSpawnScene, bsn, on},
     ui::ui_layout_system,
 };

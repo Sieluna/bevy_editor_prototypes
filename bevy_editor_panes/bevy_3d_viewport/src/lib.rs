@@ -1,6 +1,7 @@
 //! 3D Viewport for Bevy
 use bevy::{
     asset::uuid::Uuid,
+    camera::{NormalizedRenderTarget, RenderTarget, visibility::RenderLayers},
     feathers::theme::ThemedText,
     picking::{
         PickingSystems,
@@ -8,11 +9,7 @@ use bevy::{
         pointer::{Location, PointerId, PointerInput},
     },
     prelude::*,
-    render::{
-        camera::{NormalizedRenderTarget, RenderTarget},
-        render_resource::{Extent3d, TextureFormat, TextureUsages},
-        view::RenderLayers,
-    },
+    render::render_resource::{Extent3d, TextureFormat, TextureUsages},
     scene2::{CommandsSpawnScene, bsn, on},
     ui::ui_layout_system,
 };
@@ -140,7 +137,7 @@ fn render_target_picking_passthrough(
                 pointer_id: pointer_id_from_entity(pane_root),
             };
 
-            commands.write_event(event_copy);
+            commands.write_message(event_copy);
         }
     }
 }

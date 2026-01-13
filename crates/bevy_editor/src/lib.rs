@@ -19,9 +19,9 @@ use bevy::asset::UnapprovedPathMode;
 use bevy::color::palettes::tailwind;
 use bevy::prelude::*;
 use bevy::{
-    core_widgets::CoreWidgetsPlugins,
     feathers::{FeathersPlugin, dark_theme::create_dark_theme, theme::UiTheme},
     input_focus::{InputDispatchPlugin, tab_navigation::TabNavigationPlugin},
+    ui_widgets::UiWidgetsPlugins,
 };
 // Re-export Bevy for project use
 pub use bevy;
@@ -77,7 +77,7 @@ impl Plugin for EditorPlugin {
                 LoadGltfPlugin,
                 MeshPickingPlugin,
                 TransformGizmoPlugin,
-                CoreWidgetsPlugins,
+                UiWidgetsPlugins,
                 InputDispatchPlugin,
                 TabNavigationPlugin,
                 FeathersPlugin,
