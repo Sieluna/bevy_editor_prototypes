@@ -11,8 +11,9 @@
 //! Then, when these entities are selected via [`bevy_editor_core::selection`] the
 //! transform gizmo will appear and allow you to move and rotate your selection.
 
+use bevy::camera::Projection;
 use bevy::picking::{backend::ray::RayMap, pointer::PointerId};
-use bevy::{prelude::*, render::camera::Projection, transform::TransformSystems};
+use bevy::{prelude::*, transform::TransformSystems};
 use bevy_editor_core::selection::EditorSelection;
 use mesh::{RotationGizmo, ViewTranslateGizmo};
 
@@ -44,7 +45,7 @@ pub enum TransformGizmoSystems {
 }
 
 /// Event thats sent when a [`TransformGizmoInteraction`] finishes.
-#[derive(Debug, Clone, Event, BufferedEvent)]
+#[derive(Debug, Clone, Event, Message)]
 pub struct TransformGizmoEvent {
     /// The starting position of the gizmo before the interaction.
     pub from: GlobalTransform,

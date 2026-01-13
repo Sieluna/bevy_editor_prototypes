@@ -27,9 +27,9 @@ unsafe_op_in_unsafe_fn = "warn"
 unused_qualifications = "warn"
 
 [workspace.dependencies]
-bevy = { git = "https://github.com/cart/bevy.git", branch = "next-gen-scenes", features = ["experimental_bevy_feathers"] }
-bevy_derive = { git = "https://github.com/cart/bevy.git", branch = "next-gen-scenes" }
-bevy_macro_utils = { git = "https://github.com/cart/bevy.git", branch = "next-gen-scenes" }
+bevy = { git = "https://github.com/cart/bevy.git", branch = "next-gen-scenes-0.17.1", features = ["experimental_bevy_feathers"] }
+bevy_derive = { git = "https://github.com/cart/bevy.git", branch = "next-gen-scenes-0.17.1" }
+bevy_macro_utils = { git = "https://github.com/cart/bevy.git", branch = "next-gen-scenes-0.17.1" }
 thiserror = "2"
 serde = { version = "1", features = ["derive"] }
 tracing-test = "0.2.5"

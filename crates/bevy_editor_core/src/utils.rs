@@ -6,7 +6,7 @@ use bevy::{
     picking::backend::HitData,
     platform::{collections::HashMap, time::Instant},
     prelude::*,
-    scene2::Scene,
+    scene2::{PatchContext, ResolvedScene, Scene},
 };
 
 /// Editor core utils plugin.
@@ -38,7 +38,7 @@ fn on_release(
     mut commands: Commands,
 ) {
     let now = Instant::now();
-    if let Some(instant) = state.remove(&trigger.target()) {
+    if let Some(instant) = state.remove(&trigger.event().event_target()) {
         let event = Pointer::new(
             trigger.pointer_id,
             trigger.pointer_location.clone(),
@@ -47,9 +47,10 @@ fn on_release(
                 hit: trigger.hit.clone(),
                 duration: now - instant,
             },
+            trigger.event().event_target(),
         );
-        commands.trigger_targets(event.clone(), trigger.target());
-        commands.write_event(event);
+        commands.trigger(event.clone());
+        commands.write_message(event);
     }
 }
 
@@ -80,13 +81,8 @@ impl BoxedScene {
 }
 
 impl Scene for BoxedScene {
-    fn patch(
-        &self,
-        assets: &AssetServer,
-        patches: &Assets<bevy::scene2::ScenePatch>,
-        scene: &mut bevy::scene2::ResolvedScene,
-    ) {
-        self.0.patch(assets, patches, scene);
+    fn patch(&self, context: &mut PatchContext, scene: &mut ResolvedScene) {
+        self.0.patch(context, scene)
     }
 }
 
