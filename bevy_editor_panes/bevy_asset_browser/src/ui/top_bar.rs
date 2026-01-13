@@ -150,7 +150,7 @@ fn spawn_path_segment_ui<'a>(
                   mut location: ResMut<AssetBrowserLocation>,
                   query_children: Query<&Children>,
                   query_segment_info: Query<(&ChildOf, &LocationSegmentType)>| {
-                let segment = trigger.target();
+                let segment = trigger.event().event_target();
                 let (parent, segment_type) = query_segment_info.get(segment).unwrap();
                 match segment_type {
                     LocationSegmentType::Root => {

@@ -25,11 +25,13 @@ impl Plugin for CoreUtilsPlugin {
 }
 
 fn on_press(trigger: On<Pointer<Press>>, mut state: ResMut<DragCancelClickState>) {
-    state.0.insert(trigger.target(), Instant::now());
+    state
+        .0
+        .insert(trigger.event().event_target(), Instant::now());
 }
 
 fn on_drag_start(trigger: On<Pointer<DragStart>>, mut state: ResMut<DragCancelClickState>) {
-    state.0.remove(&trigger.target());
+    state.0.remove(&trigger.event().event_target());
 }
 
 fn on_release(
@@ -82,7 +84,7 @@ impl BoxedScene {
 
 impl Scene for BoxedScene {
     fn patch(&self, context: &mut PatchContext, scene: &mut ResolvedScene) {
-        self.0.patch(context, scene)
+        self.0.patch(context, scene);
     }
 }
 

@@ -71,7 +71,7 @@ impl Plugin for Viewport3dPanePlugin {
                  query: Query<&Bevy3dViewport>| {
                     // Despawn the viewport camera
                     commands
-                        .entity(query.get(trigger.target()).unwrap().camera_id)
+                        .entity(query.get(trigger.event().event_target()).unwrap().camera_id)
                         .despawn();
                 },
             );
@@ -193,10 +193,10 @@ fn on_pane_creation(
                     ImageNode::new(image.clone())
                     :fit_to_parent
                     on(|trigger: On<Pointer<Over>>, mut commands: Commands| {
-                        commands.entity(trigger.target()).insert(Active);
+                        commands.entity(trigger.event().event_target()).insert(Active);
                     })
                     on(|trigger: On<Pointer<Out>>, mut commands: Commands| {
-                        commands.entity(trigger.target()).remove::<Active>();
+                        commands.entity(trigger.event().event_target()).remove::<Active>();
                     })
                     [ :view_gizmo_node ]
                 ],

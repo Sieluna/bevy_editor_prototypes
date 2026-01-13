@@ -47,7 +47,7 @@ impl Plugin for Viewport2dPanePlugin {
                  query: Query<&Bevy2dViewport>| {
                     // Despawn the viewport camera
                     commands
-                        .entity(query.get(trigger.target()).unwrap().camera_id)
+                        .entity(query.get(trigger.event().event_target()).unwrap().camera_id)
                         .despawn();
                 },
             );

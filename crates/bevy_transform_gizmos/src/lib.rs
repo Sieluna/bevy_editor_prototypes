@@ -72,20 +72,15 @@ pub struct ScaleGizmo;
 pub struct InternalGizmoCamera;
 
 /// Available gizmo modes.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum GizmoMode {
     /// Translation mode (W key).
+    #[default]
     Translate,
     /// Rotation mode (E key).
     Rotate,
     /// Scale mode (R key).
     Scale,
-}
-
-impl Default for GizmoMode {
-    fn default() -> Self {
-        Self::Translate
-    }
 }
 
 /// Settings for the [`TransformGizmoPlugin`].
@@ -270,7 +265,7 @@ fn on_transform_gizmo_pointer_press(
     if trigger.button != PointerButton::Primary {
         return;
     }
-    let Ok((interaction, child_of)) = target_query.get(trigger.target()) else {
+    let Ok((interaction, child_of)) = target_query.get(trigger.event().event_target()) else {
         return;
     };
     let Ok((mut gizmo, transform)) = query.get_mut(child_of.parent()) else {

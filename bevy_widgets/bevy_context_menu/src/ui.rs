@@ -61,12 +61,13 @@ pub(crate) fn spawn_option<'a>(
             |trigger: On<Pointer<Over>>,
              theme: Res<Theme>,
              mut query: Query<&mut BackgroundColor>| {
-                *query.get_mut(trigger.target()).unwrap() = theme.context_menu.hover_color;
+                *query.get_mut(trigger.event().event_target()).unwrap() =
+                    theme.context_menu.hover_color;
             },
         )
         .observe(
             |trigger: On<Pointer<Out>>, mut query: Query<&mut BackgroundColor>| {
-                query.get_mut(trigger.target()).unwrap().0 = Color::NONE;
+                query.get_mut(trigger.event().event_target()).unwrap().0 = Color::NONE;
             },
         )
         .observe(
@@ -79,7 +80,7 @@ pub(crate) fn spawn_option<'a>(
                 }
                 // Despawn the context menu when an option is selected
                 let root = child_of_query
-                    .iter_ancestors(trigger.target())
+                    .iter_ancestors(trigger.event().event_target())
                     .last()
                     .unwrap();
                 commands.entity(root).despawn();

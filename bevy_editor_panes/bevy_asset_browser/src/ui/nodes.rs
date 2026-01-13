@@ -34,7 +34,7 @@ pub(crate) fn spawn_source_node<'a>(
                 if trigger.event().button != PointerButton::Primary {
                     return;
                 }
-                let button = trigger.target();
+                let button = trigger.event().event_target();
                 let button_children = query_children.get(button).unwrap();
                 let source_name = &query_text
                     .get(button_children[1])
@@ -99,7 +99,7 @@ pub(crate) fn spawn_folder_node<'a>(
                 if trigger.event().button != PointerButton::Primary {
                     return;
                 }
-                let button = trigger.target();
+                let button = trigger.event().event_target();
                 let button_children = query_children.get(button).unwrap();
                 let folder_name = &query_text
                     .get(button_children[1])

@@ -214,7 +214,7 @@ pub(crate) fn spawn_resize_handle<'a>(
 
             drag_state.is_dragging = true;
 
-            let target = trigger.target();
+            let target = trigger.event().event_target();
             let parent = parent_query.get(target).unwrap().parent();
 
             let parent_node_size = computed_node_query.get(parent).unwrap().size();
@@ -247,7 +247,7 @@ pub(crate) fn spawn_resize_handle<'a>(
                 return;
             }
 
-            let target = trigger.target();
+            let target = trigger.event().event_target();
             let parent = parent_query.get(target).unwrap().parent();
             let siblings = children_query.get(parent).unwrap();
             // Find the index of this handle among its siblings
