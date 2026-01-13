@@ -235,7 +235,7 @@ fn spawn_scroll_bar<'a>(
 }
 
 fn on_scroll(
-    mut mouse_wheel_events: EventReader<MouseWheel>,
+    mut mouse_wheel_events: MessageReader<MouseWheel>,
     mut query_scrollbox: Query<(&RelativeCursorPosition, Entity, &mut ScrollBox, &Children)>,
     query_scrollbox_content: Query<&ComputedNode, With<ScrollBoxContent>>,
     query_computed_node: Query<&ComputedNode>,

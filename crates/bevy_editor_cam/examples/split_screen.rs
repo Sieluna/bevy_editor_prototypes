@@ -74,7 +74,7 @@ struct RightCamera;
 
 fn set_camera_viewports(
     windows: Query<&Window>,
-    mut resize_events: EventReader<WindowResized>,
+    mut resize_events: MessageReader<WindowResized>,
     mut left_camera: Query<&mut Camera, (With<LeftCamera>, Without<RightCamera>)>,
     mut right_camera: Query<&mut Camera, With<RightCamera>>,
 ) {

@@ -16,7 +16,7 @@ pub struct CoreUtilsPlugin;
 impl Plugin for CoreUtilsPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<DragCancelClickState>()
-            .add_event::<Pointer<DragCancelClick>>()
+            .add_message::<Pointer<DragCancelClick>>()
             .register_type::<Pointer<DragCancelClick>>()
             .add_observer(on_press)
             .add_observer(on_drag_start)

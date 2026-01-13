@@ -105,8 +105,8 @@ fn render_target_picking_passthrough(
     content: Query<&PaneContentNode>,
     children_query: Query<&Children>,
     node_query: Query<(&ComputedNode, &UiGlobalTransform, &ImageNode), With<Active>>,
-    mut pointer_input_reader: EventReader<PointerInput>,
-    // Using commands to output PointerInput events to avoid clashing with the EventReader
+    mut pointer_input_reader: MessageReader<PointerInput>,
+    // Using commands to output PointerInput events to avoid clashing with the MessageReader
     mut commands: Commands,
 ) {
     for event in pointer_input_reader.read() {

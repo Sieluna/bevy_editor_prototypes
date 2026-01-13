@@ -87,7 +87,7 @@ fn projection_specific_render_config(
 
 fn toggle_projection(
     keys: Res<ButtonInput<KeyCode>>,
-    mut dolly: EventWriter<DollyZoomTrigger>,
+    mut dolly: MessageWriter<DollyZoomTrigger>,
     cam: Query<Entity, With<EditorCam>>,
     mut toggled: Local<bool>,
 ) {
@@ -108,7 +108,7 @@ fn toggle_projection(
 fn toggle_constraint(
     keys: Res<ButtonInput<KeyCode>>,
     mut cam: Query<(Entity, &Transform, &mut EditorCam)>,
-    mut look_to: EventWriter<LookToTrigger>,
+    mut look_to: MessageWriter<LookToTrigger>,
 ) {
     if keys.just_pressed(KeyCode::KeyC) {
         let (entity, transform, mut editor) = cam.single_mut().unwrap();
@@ -133,7 +133,7 @@ fn toggle_constraint(
 
 fn switch_direction(
     keys: Res<ButtonInput<KeyCode>>,
-    mut look_to: EventWriter<LookToTrigger>,
+    mut look_to: MessageWriter<LookToTrigger>,
     cam: Query<(Entity, &Transform, &EditorCam)>,
 ) {
     let (camera, transform, editor) = cam.single().unwrap();

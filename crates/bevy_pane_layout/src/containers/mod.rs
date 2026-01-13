@@ -1,3 +1,5 @@
+#![allow(unused)] // FIXME: This module is part of https://github.com/cart/bevy/pull/34 
+
 //! Meta-module containing all feathers containers (passive widgets that hold other widgets).
 mod flex_spacer;
 mod pane;

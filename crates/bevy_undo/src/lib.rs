@@ -39,7 +39,7 @@
 //!
 //! fn handle_input(
 //!     keys: Res<ButtonInput<KeyCode>>,
-//!     mut undo_redo: EventWriter<UndoRedo>,
+//!     mut undo_redo: MessageWriter<UndoRedo>,
 //! ) {
 //!     if keys.just_pressed(KeyCode::KeyZ) {
 //!         undo_redo.write(UndoRedo::Undo);
@@ -51,7 +51,7 @@
 //!
 //! fn apply_transform(
 //!     mut query: Query<(Entity, &mut Transform), With<UndoMarker>>,
-//!     mut new_changes: EventWriter<NewChange>,
+//!     mut new_changes: MessageWriter<NewChange>,
 //! ) {
 //!     for (entity, mut transform) in query.iter_mut() {
 //!         // Apply some change
@@ -240,7 +240,7 @@ pub enum UndoSet {
 /// ```rust
 /// use bevy::prelude::*;
 /// use bevy_undo::*;
-/// fn react_to_transform_undo_redo(mut events: EventReader<UndoRedoApplied<Transform>>) {
+/// fn react_to_transform_undo_redo(mut events: MessageReader<UndoRedoApplied<Transform>>) {
 ///     for event in events.read() {
 ///         println!("Transform of entity {:?} was modified by undo/redo", event.entity);
 ///         // Perform any necessary updates or side effects
@@ -295,7 +295,7 @@ fn update_change_chain(
     mut buffer: Local<Vec<NewChange>>, //Buffer will use for chain reaction changes and collecting them together
     settings: Res<ChangeChainSettings>,
     mut change_chain: ResMut<ChangeChain>,
-    mut events: EventReader<NewChange>,
+    mut events: MessageReader<NewChange>,
 ) {
     //collect buffer
     let mut events_on_current_frame = 0;
@@ -1294,7 +1294,7 @@ fn apply_for_every_typed_field<D: Reflect + TypePath>(
 }
 
 fn auto_remap_undo_redo<T: Component + Reflect>(
-    mut undoredo_applied: EventReader<UndoRedoApplied<T>>,
+    mut undoredo_applied: MessageReader<UndoRedoApplied<T>>,
     mut commands: Commands,
 ) {
     for event in undoredo_applied.read() {
@@ -1349,7 +1349,7 @@ fn auto_undo_add_init<T: Component + Clone>(
     mut storage: ResMut<AutoUndoStorage<T>>,
     query: Query<(Entity, &T), (With<UndoMarker>, Added<T>, Without<OneFrameUndoIgnore>)>,
     just_maker_added_query: Query<(Entity, &T), (Added<UndoMarker>, Without<OneFrameUndoIgnore>)>,
-    mut new_changes: EventWriter<NewChange>,
+    mut new_changes: MessageWriter<NewChange>,
 ) {
     for (e, data) in query.iter() {
         storage.storage.insert(e, data.clone());
@@ -1370,7 +1370,7 @@ fn auto_undo_reflected_add_init<T: Component + Reflect + FromReflect>(
     mut storage: ResMut<AutoUndoStorage<T>>,
     query: Query<(Entity, &T), (With<UndoMarker>, Added<T>, Without<OneFrameUndoIgnore>)>,
     just_maker_added_query: Query<(Entity, &T), (Added<UndoMarker>, Without<OneFrameUndoIgnore>)>,
-    mut new_changes: EventWriter<NewChange>,
+    mut new_changes: MessageWriter<NewChange>,
 ) {
     for (e, data) in query.iter() {
         storage
@@ -1403,7 +1403,7 @@ fn auto_undo_remove_detect<T: Component + Clone>(
     _commands: Commands,
     mut storage: ResMut<AutoUndoStorage<T>>,
     mut removed_query: RemovedComponents<T>,
-    mut new_changes: EventWriter<NewChange>,
+    mut new_changes: MessageWriter<NewChange>,
     ignore_storage: ResMut<UndoIgnoreStorage>,
 ) {
     for e in removed_query.read() {
@@ -1424,7 +1424,7 @@ fn auto_undo_reflected_remove_detect<T: Component + Reflect + FromReflect>(
     _commands: Commands,
     mut storage: ResMut<AutoUndoStorage<T>>,
     mut removed_query: RemovedComponents<T>,
-    mut new_changes: EventWriter<NewChange>,
+    mut new_changes: MessageWriter<NewChange>,
     ignore_storage: ResMut<UndoIgnoreStorage>,
 ) {
     for e in removed_query.read() {
@@ -1456,7 +1456,7 @@ fn auto_undo_system<T: Component + Clone>(
     mut commands: Commands,
     mut storage: ResMut<AutoUndoStorage<T>>,
     mut query: Query<(Entity, Ref<T>), With<ChangedMarker<T>>>,
-    mut new_change: EventWriter<NewChange>,
+    mut new_change: MessageWriter<NewChange>,
 ) {
     for (e, data) in query.iter_mut() {
         if !data.is_changed() {
@@ -1482,7 +1482,7 @@ fn auto_undo_reflected_system<T: Component + Reflect + FromReflect>(
     mut commands: Commands,
     mut storage: ResMut<AutoUndoStorage<T>>,
     mut query: Query<(Entity, Ref<T>, &mut ChangedMarker<T>)>,
-    mut new_change: EventWriter<NewChange>,
+    mut new_change: MessageWriter<NewChange>,
 ) {
     for (e, data, mut marker) in query.iter_mut() {
         if !data.is_changed() {

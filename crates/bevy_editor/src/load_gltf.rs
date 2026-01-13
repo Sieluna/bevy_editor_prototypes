@@ -21,7 +21,7 @@ impl Plugin for LoadGltfPlugin {
 fn file_dropped(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
-    mut event_reader: EventReader<FileDragAndDrop>,
+    mut event_reader: MessageReader<FileDragAndDrop>,
 ) {
     for event in event_reader.read() {
         if let FileDragAndDrop::DroppedFile { path_buf, .. } = event

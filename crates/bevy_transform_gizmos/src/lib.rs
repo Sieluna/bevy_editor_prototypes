@@ -131,7 +131,7 @@ impl Plugin for TransformGizmoPlugin {
         }
         app.init_resource::<TransformGizmoSettings>()
             .add_plugins(Ui3dNormalizationPlugin)
-            .add_event::<TransformGizmoEvent>()
+            .add_message::<TransformGizmoEvent>()
             .add_observer(on_transform_gizmo_pointer_press)
             .add_observer(on_transform_gizmo_pointer_release);
 
@@ -295,7 +295,7 @@ fn on_transform_gizmo_pointer_press(
 fn on_transform_gizmo_pointer_release(
     trigger: On<Pointer<Release>>,
     mut query: Query<(&mut TransformGizmo, &GlobalTransform)>,
-    mut gizmo_events: EventWriter<TransformGizmoEvent>,
+    mut gizmo_events: MessageWriter<TransformGizmoEvent>,
     mut commands: Commands,
     initial_transform_query: Query<Entity, With<InitialTransform>>,
 ) {

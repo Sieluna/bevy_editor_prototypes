@@ -303,7 +303,7 @@ impl EditorCam {
     /// Called once every frame to compute motions and update the transforms of all [`EditorCam`]s
     pub fn update_camera_positions(
         mut cameras: Query<(&mut EditorCam, &Camera, &mut Transform, &mut Projection)>,
-        mut event: EventWriter<RequestRedraw>,
+        mut event: MessageWriter<RequestRedraw>,
         time: Res<Time>,
     ) {
         for (mut camera_controller, camera, ref mut transform, ref mut projection) in
@@ -321,7 +321,7 @@ impl EditorCam {
         camera: &Camera,
         cam_transform: &mut Transform,
         projection: &mut Projection,
-        redraw: &mut EventWriter<RequestRedraw>,
+        redraw: &mut MessageWriter<RequestRedraw>,
         delta_time: Duration,
     ) {
         let (anchor, orbit, pan, zoom) = match &mut self.current_motion {

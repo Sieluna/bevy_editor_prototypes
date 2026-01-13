@@ -193,7 +193,7 @@ pub(crate) fn spawn_project_node<'a>(
          mut commands: Commands,
          query_children: Query<&Children>,
          query_text: Query<&Text>,
-         mut exit: EventWriter<AppExit>,
+         mut exit: MessageWriter<AppExit>,
          mut project_list: ResMut<ProjectInfoList>,
          theme: Res<Theme>| {
             let project = {
