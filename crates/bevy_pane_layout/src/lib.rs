@@ -1,6 +1,7 @@
 //! Resizable, divider-able panes for Bevy.
 
 pub mod components;
+mod containers;
 mod handlers;
 mod pane_drop_area;
 pub mod registry;
