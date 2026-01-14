@@ -230,6 +230,7 @@ impl<B: Bundle> DynamicBundle for ConstructTuple<B> {
             let ConstructTuple { 0: field0 } = ptr;
         });
 
+        // SAFETY: B::get_components has the same constraints as Self::get_components
         unsafe { <B as DynamicBundle>::get_components(field0, func) };
     }
 

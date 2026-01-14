@@ -15,7 +15,7 @@ pub fn on_click(
     q_texts: Query<(&ComputedNode, &UiGlobalTransform)>,
     key_states: Res<ButtonInput<KeyCode>>,
 ) {
-    let entity = click.target();
+    let entity = click.event().event_target();
     let Ok((mut text_line, mut inner)) = q_editable_texts.get_mut(entity) else {
         return;
     };
@@ -67,7 +67,7 @@ pub fn on_key_input(
         return;
     }
 
-    let Ok((entity, mut text_field)) = q_text_fields.get_mut(trigger.target()) else {
+    let Ok((entity, mut text_field)) = q_text_fields.get_mut(trigger.event().event_target()) else {
         return;
     };
 

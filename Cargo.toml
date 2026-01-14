@@ -27,16 +27,16 @@ unsafe_op_in_unsafe_fn = "warn"
 unused_qualifications = "warn"
 
 [workspace.dependencies]
-bevy = { git = "https://github.com/cart/bevy.git", branch = "next-gen-scenes-0.17.1", features = ["experimental_bevy_feathers"] }
-bevy_derive = { git = "https://github.com/cart/bevy.git", branch = "next-gen-scenes-0.17.1" }
-bevy_macro_utils = { git = "https://github.com/cart/bevy.git", branch = "next-gen-scenes-0.17.1" }
+bevy = { git = "https://github.com/cart/bevy.git", rev = "87a21ecafa51bfaea02834b5933f08397b45b984", features = ["experimental_bevy_feathers"] }
+bevy_derive = { git = "https://github.com/cart/bevy.git", rev = "87a21ecafa51bfaea02834b5933f08397b45b984" }
+bevy_macro_utils = { git = "https://github.com/cart/bevy.git", rev = "87a21ecafa51bfaea02834b5933f08397b45b984" }
 thiserror = "2"
 serde = { version = "1", features = ["derive"] }
 tracing-test = "0.2.5"
 tracing = "0.1.41"
 atomicow = "1.1.0"
-rfd = "0.15.3"
-ron = "0.10.1"
+rfd = "0.17.2"
+ron = "0.12.0"
 variadics_please = "1.0"
 
 # local crates

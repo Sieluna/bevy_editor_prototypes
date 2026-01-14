@@ -153,8 +153,8 @@ impl Plugin for UndoPlugin {
         app.init_resource::<UndoIgnoreStorage>();
         app.init_resource::<ChangeChainSettings>();
 
-        app.add_event::<NewChange>();
-        app.add_event::<UndoRedo>();
+        app.add_message::<NewChange>();
+        app.add_message::<UndoRedo>();
 
         app.configure_sets(
             PostUpdate,
@@ -353,7 +353,7 @@ fn clear_one_frame_ignore(
 }
 
 fn undo_redo_logic(world: &mut World) {
-    world.resource_scope::<Events<UndoRedo>, _>(|world, mut events| {
+    world.resource_scope::<Messages<UndoRedo>, _>(|world, mut events| {
         world.resource_scope::<ChangeChain, _>(|world, mut change_chain| {
             {
                 let mut reader = events.get_cursor();
@@ -1152,7 +1152,7 @@ impl AppAutoUndo for App {
 
         self.world_mut()
             .insert_resource(AutoUndoStorage::<T>::default());
-        self.add_event::<UndoRedoApplied<T>>();
+        self.add_message::<UndoRedoApplied<T>>();
 
         self.add_systems(
             PostUpdate,
@@ -1178,7 +1178,7 @@ impl AppAutoUndo for App {
 
         self.world_mut()
             .insert_resource(AutoUndoStorage::<T>::default());
-        self.add_event::<UndoRedoApplied<T>>();
+        self.add_message::<UndoRedoApplied<T>>();
 
         self.add_systems(
             PostUpdate,
