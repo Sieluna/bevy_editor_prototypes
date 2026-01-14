@@ -42,9 +42,10 @@ pub struct ToolbarButton {
 }
 
 /// Available editor tools.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum EditorTool {
     /// Selection tool for picking entities.
+    #[default]
     Select,
     /// Move tool for translating entities.
     Move,
@@ -73,12 +74,6 @@ pub enum EditorTool {
 /// Current active tool resource.
 #[derive(Resource, Default)]
 pub struct ActiveTool(pub EditorTool);
-
-impl Default for EditorTool {
-    fn default() -> Self {
-        Self::Select
-    }
-}
 
 /// Marker component for the gizmo mode status text.
 #[derive(Component)]

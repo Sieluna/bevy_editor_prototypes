@@ -71,20 +71,15 @@ pub struct ScaleGizmo;
 pub struct InternalGizmoCamera;
 
 /// Available gizmo modes.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum GizmoMode {
     /// Translation mode (W key).
+    #[default]
     Translate,
     /// Rotation mode (E key).
     Rotate,
     /// Scale mode (R key).
     Scale,
-}
-
-impl Default for GizmoMode {
-    fn default() -> Self {
-        Self::Translate
-    }
 }
 
 /// Settings for the [`TransformGizmoPlugin`].
