@@ -59,9 +59,7 @@ jobs:
           sudo apt-get clean
 
       - name: Populate target directory from cache
-        uses: Leafwing-Studios/cargo-cache@v2
-        with:
-          sweep-cache: true
+        uses: Swatinem/rust-cache@v2
 
       - name: Run tests
         run: |
