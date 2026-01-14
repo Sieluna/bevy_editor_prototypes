@@ -30,7 +30,23 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Install dependencies
-        run: sudo apt-get update; sudo apt-get install --no-install-recommends libasound2-dev libudev-dev libwayland-dev libxkbcommon-dev
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends libasound2-dev libudev-dev libwayland-dev libxkbcommon-dev
+
+          # Uninstall unneeded tools
+          # Haskell
+          sudo rm -rf /opt/ghc || true
+          sudo rm -rf /usr/local/.ghcup || true
+          # Android
+          sudo rm -rf /usr/local/lib/android
+          # Databases
+          sudo apt-get remove -y '^mongodb-.*'
+          sudo apt-get remove -y '^mysql-.*'
+
+          # Clean up unused packages
+          sudo apt-get autoremove -y
+          sudo apt-get clean
 
       - name: Populate target directory from cache
         uses: Leafwing-Studios/cargo-cache@v2
