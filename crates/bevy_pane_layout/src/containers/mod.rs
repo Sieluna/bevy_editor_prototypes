@@ -5,9 +5,26 @@ mod flex_spacer;
 mod pane;
 mod subpane;
 
+use bevy::ecs::system::{Commands, ResMut};
+use bevy::feathers::palette;
+use bevy::feathers::theme::UiTheme;
+
 pub use flex_spacer::flex_spacer;
 pub use pane::{pane, pane_body, pane_header, pane_header_divider};
 pub use subpane::{subpane, subpane_body, subpane_header};
+
+pub fn setup(mut theme: ResMut<UiTheme>) {
+    theme.set_color("feathers.pane.header.bg", palette::GRAY_0);
+    theme.set_color("feathers.pane.header.border", palette::WARM_GRAY_1);
+    theme.set_color("feathers.pane.header.text", palette::LIGHT_GRAY_1);
+    theme.set_color("feathers.pane.header.divider", palette::WARM_GRAY_1);
+
+    theme.set_color("feathers.subpane.header.bg", palette::GRAY_2);
+    theme.set_color("feathers.subpane.header.border", palette::GRAY_3);
+    theme.set_color("feathers.subpane.header.text", palette::LIGHT_GRAY_1);
+    theme.set_color("feathers.subpane.body.bg", palette::GRAY_1);
+    theme.set_color("feathers.subpane.body.border", palette::GRAY_2);
+}
 
 /// Size constants
 pub mod size {
