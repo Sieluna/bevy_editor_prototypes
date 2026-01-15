@@ -1,6 +1,7 @@
 //! 3D Viewport for Bevy
 use bevy::{
     asset::uuid::Uuid,
+    camera::{NormalizedRenderTarget, RenderTarget, visibility::RenderLayers},
     feathers::theme::ThemedText,
     picking::{
         PickingSystems,
@@ -8,11 +9,7 @@ use bevy::{
         pointer::{Location, PointerId, PointerInput},
     },
     prelude::*,
-    render::{
-        camera::{NormalizedRenderTarget, RenderTarget},
-        render_resource::{Extent3d, TextureFormat, TextureUsages},
-        view::RenderLayers,
-    },
+    render::render_resource::{Extent3d, TextureFormat, TextureUsages},
     scene2::{CommandsSpawnScene, bsn, on},
     ui::ui_layout_system,
 };
@@ -74,7 +71,7 @@ impl Plugin for Viewport3dPanePlugin {
                  query: Query<&Bevy3dViewport>| {
                     // Despawn the viewport camera
                     commands
-                        .entity(query.get(trigger.target()).unwrap().camera_id)
+                        .entity(query.get(trigger.event().event_target()).unwrap().camera_id)
                         .despawn();
                 },
             );
@@ -108,8 +105,8 @@ fn render_target_picking_passthrough(
     content: Query<&PaneContentNode>,
     children_query: Query<&Children>,
     node_query: Query<(&ComputedNode, &UiGlobalTransform, &ImageNode), With<Active>>,
-    mut pointer_input_reader: EventReader<PointerInput>,
-    // Using commands to output PointerInput events to avoid clashing with the EventReader
+    mut pointer_input_reader: MessageReader<PointerInput>,
+    // Using commands to output PointerInput events to avoid clashing with the MessageReader
     mut commands: Commands,
 ) {
     for event in pointer_input_reader.read() {
@@ -140,7 +137,7 @@ fn render_target_picking_passthrough(
                 pointer_id: pointer_id_from_entity(pane_root),
             };
 
-            commands.write_event(event_copy);
+            commands.write_message(event_copy);
         }
     }
 }
@@ -196,10 +193,10 @@ fn on_pane_creation(
                     ImageNode::new(image.clone())
                     :fit_to_parent
                     on(|trigger: On<Pointer<Over>>, mut commands: Commands| {
-                        commands.entity(trigger.target()).insert(Active);
+                        commands.entity(trigger.event().event_target()).insert(Active);
                     })
                     on(|trigger: On<Pointer<Out>>, mut commands: Commands| {
-                        commands.entity(trigger.target()).remove::<Active>();
+                        commands.entity(trigger.event().event_target()).remove::<Active>();
                     })
                     [ :view_gizmo_node ]
                 ],

@@ -7,7 +7,7 @@ use bevy::{
         world::error::EntityMutableFetchError,
     },
     prelude::*,
-    ptr::OwningPtr,
+    ptr::{MovingPtr, OwningPtr, deconstruct_moving_ptr},
 };
 use thiserror::Error;
 use variadics_please::all_tuples;
@@ -220,7 +220,25 @@ unsafe impl<B: BundleFromComponents> BundleFromComponents for ConstructTuple<B> 
 impl<B: Bundle> DynamicBundle for ConstructTuple<B> {
     type Effect = ();
 
-    fn get_components(self, func: &mut impl FnMut(StorageType, OwningPtr<'_>)) {
-        self.0.get_components(func);
+    #[allow(unused_variables, unsafe_code)]
+    #[inline]
+    unsafe fn get_components(
+        ptr: MovingPtr<'_, Self>,
+        func: &mut impl FnMut(StorageType, OwningPtr<'_>),
+    ) {
+        deconstruct_moving_ptr!({
+            let ConstructTuple { 0: field0 } = ptr;
+        });
+
+        // SAFETY: B::get_components has the same constraints as Self::get_components
+        unsafe { <B as DynamicBundle>::get_components(field0, func) };
+    }
+
+    #[allow(unused_variables, unsafe_code)]
+    #[inline]
+    unsafe fn apply_effect(
+        _ptr: MovingPtr<'_, std::mem::MaybeUninit<Self>>,
+        _entity: &mut EntityWorldMut,
+    ) {
     }
 }

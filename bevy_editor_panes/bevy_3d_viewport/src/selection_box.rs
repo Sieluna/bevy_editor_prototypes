@@ -1,7 +1,7 @@
+use bevy::camera::primitives::Aabb;
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 use bevy_editor_core::selection::EditorSelection;
-use bevy_render::primitives::Aabb;
 
 #[derive(SystemParam)]
 pub struct SelectionBoxQueries<'w, 's> {

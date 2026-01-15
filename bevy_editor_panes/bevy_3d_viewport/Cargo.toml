@@ -10,7 +10,6 @@ bevy_editor_cam.workspace = true
 bevy_editor_styles.workspace = true
 bevy_infinite_grid.workspace = true
 bevy_editor_core.workspace = true
-bevy_render.workspace = true
 bevy_transform_gizmos.workspace = true
 
 [lints]

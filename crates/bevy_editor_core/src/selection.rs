@@ -29,7 +29,7 @@ fn selection_handler(
         return;
     }
 
-    let target = trigger.target();
+    let target = trigger.event().event_target();
     if selectable_query.contains(target) {
         trigger.propagate(false);
         let shift = keyboard_input.any_pressed([KeyCode::ShiftLeft, KeyCode::ShiftRight]);

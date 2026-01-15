@@ -103,12 +103,12 @@ fn on_validation_changed(
     mut commands: Commands,
     q_character_validator: Query<&CharacterValidator>,
 ) {
-    let entity = trigger.target();
+    let entity = trigger.event().event_target();
     let Ok(character_validator) = q_character_validator.get(entity) else {
         return;
     };
 
-    match &trigger.0 {
+    match &trigger.state {
         ValidationState::Valid | ValidationState::Unchecked => {
             commands
                 .entity(character_validator.msg_text)

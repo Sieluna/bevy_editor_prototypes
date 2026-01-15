@@ -1,8 +1,8 @@
 //! Editor camera example with a city map to traverse.
 
 use bevy::{
-    anti_aliasing::taa::TemporalAntiAliasing, color::palettes, core_pipeline::bloom::Bloom,
-    pbr::ScreenSpaceAmbientOcclusion,
+    anti_alias::taa::TemporalAntiAliasing, color::palettes, pbr::ScreenSpaceAmbientOcclusion,
+    post_process::bloom::Bloom,
 };
 use bevy::{prelude::*, render::camera::TemporalJitter};
 use bevy_editor_cam::{extensions::dolly_zoom::DollyZoomTrigger, prelude::*};
@@ -89,7 +89,7 @@ fn spawn_buildings(
 
 fn toggle_projection(
     keys: Res<ButtonInput<KeyCode>>,
-    mut dolly: EventWriter<DollyZoomTrigger>,
+    mut dolly: MessageWriter<DollyZoomTrigger>,
     cam: Query<Entity, With<EditorCam>>,
     mut toggled: Local<bool>,
 ) {

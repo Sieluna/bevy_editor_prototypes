@@ -4,12 +4,10 @@
 
 use bevy::{
     asset::RenderAssetUsages,
+    camera::visibility::RenderLayers,
     ecs::template::template,
     prelude::*,
-    render::{
-        render_resource::{Extent3d, Face, TextureDimension, TextureFormat, TextureUsages},
-        view::RenderLayers,
-    },
+    render::render_resource::{Extent3d, Face, TextureDimension, TextureFormat, TextureUsages},
     scene2::{Scene, bsn},
 };
 use bevy_editor_cam::prelude::EditorCam;
@@ -44,7 +42,7 @@ pub fn view_gizmo_node() -> impl Scene {
             width: Val::Px({VIEW_GIZMO_TEXTURE_SIZE as f32}),
             height: Val::Px({VIEW_GIZMO_TEXTURE_SIZE as f32}),
         }
-        template(view_gizmo_template)
+        template(|c| view_gizmo_template(c.entity))
     }
 }
 

@@ -2,15 +2,12 @@
 
 use bevy::{
     ecs::template::template,
-    feathers::{
-        containers::{pane, pane_body, pane_header},
-        theme::ThemeBackgroundColor,
-        tokens,
-    },
+    feathers::theme::ThemeBackgroundColor,
     prelude::*,
     scene2::{Scene, bsn},
 };
 
+use crate::containers::{pane, pane_body, pane_header, tokens};
 use crate::{PaneContentNode, PaneHeaderNode, ui::header_context_menu};
 
 /// A standard editor pane.

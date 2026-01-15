@@ -11,8 +11,9 @@
 //! Then, when these entities are selected via [`bevy_editor_core::selection`] the
 //! transform gizmo will appear and allow you to move and rotate your selection.
 
+use bevy::camera::Projection;
 use bevy::picking::{backend::ray::RayMap, pointer::PointerId};
-use bevy::{prelude::*, render::camera::Projection, transform::TransformSystems};
+use bevy::{prelude::*, transform::TransformSystems};
 use bevy_editor_core::selection::EditorSelection;
 use mesh::{RotationGizmo, ViewTranslateGizmo};
 
@@ -44,7 +45,7 @@ pub enum TransformGizmoSystems {
 }
 
 /// Event thats sent when a [`TransformGizmoInteraction`] finishes.
-#[derive(Debug, Clone, Event, BufferedEvent)]
+#[derive(Debug, Clone, Event, Message)]
 pub struct TransformGizmoEvent {
     /// The starting position of the gizmo before the interaction.
     pub from: GlobalTransform,
@@ -130,7 +131,7 @@ impl Plugin for TransformGizmoPlugin {
         }
         app.init_resource::<TransformGizmoSettings>()
             .add_plugins(Ui3dNormalizationPlugin)
-            .add_event::<TransformGizmoEvent>()
+            .add_message::<TransformGizmoEvent>()
             .add_observer(on_transform_gizmo_pointer_press)
             .add_observer(on_transform_gizmo_pointer_release);
 
@@ -264,7 +265,7 @@ fn on_transform_gizmo_pointer_press(
     if trigger.button != PointerButton::Primary {
         return;
     }
-    let Ok((interaction, child_of)) = target_query.get(trigger.target()) else {
+    let Ok((interaction, child_of)) = target_query.get(trigger.event().event_target()) else {
         return;
     };
     let Ok((mut gizmo, transform)) = query.get_mut(child_of.parent()) else {
@@ -294,7 +295,7 @@ fn on_transform_gizmo_pointer_press(
 fn on_transform_gizmo_pointer_release(
     trigger: On<Pointer<Release>>,
     mut query: Query<(&mut TransformGizmo, &GlobalTransform)>,
-    mut gizmo_events: EventWriter<TransformGizmoEvent>,
+    mut gizmo_events: MessageWriter<TransformGizmoEvent>,
     mut commands: Commands,
     initial_transform_query: Query<Entity, With<InitialTransform>>,
 ) {

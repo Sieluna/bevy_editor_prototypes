@@ -1,6 +1,6 @@
 //! Normalization module. See [`Normalize3d`].
 
-use bevy::{prelude::*, render::camera::Camera, transform::TransformSystems};
+use bevy::{camera::Camera, prelude::*, transform::TransformSystems};
 
 use crate::{GizmoCamera, TransformGizmoSettings, TransformGizmoSystems};
 

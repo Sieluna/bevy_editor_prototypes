@@ -2,7 +2,7 @@ use core::{any::TypeId, cell::RefCell, hash::BuildHasher, ops::Deref, str::FromS
 
 use bevy::{
     app::App,
-    asset::{Asset, AssetLoader, AssetServer, Handle, LoadContext, io::Reader},
+    asset::{Asset, AssetLoader, AssetPath, AssetServer, Handle, LoadContext, io::Reader},
     ecs::{
         reflect::AppTypeRegistry,
         world::{FromWorld, World},
@@ -26,7 +26,7 @@ pub(crate) fn bsn_reflect_plugin(app: &mut App) {
     app.init_asset_loader::<ReflectedBsnLoader>();
 
     /// Register `ReflectHandle`s for some upstream assets to ensure the hacky asset loading workaround works.
-    use bevy::{asset::Handle, prelude::*, sprite::Wireframe2dMaterial};
+    use bevy::{asset::Handle, prelude::*, sprite_render::Wireframe2dMaterial};
     app.register_type_data::<Handle<Scene>, ReflectHandleLoad>();
     app.register_type_data::<Handle<Bsn>, ReflectHandleLoad>();
     app.register_type_data::<Handle<Font>, ReflectHandleLoad>();
@@ -710,11 +710,14 @@ pub enum BsnReflectorAssetLoader<'a, 'b> {
 }
 
 impl BsnReflectorAssetLoader<'_, '_> {
-    fn load<A: Asset>(&self, path: &str) -> Handle<A> {
+    fn load<'a, A: Asset>(&self, path: impl Into<AssetPath<'a>>) -> Handle<A> {
+        let asset_path = path.into().into_owned();
         match self {
-            BsnReflectorAssetLoader::AssetServer(asset_server) => asset_server.load::<A>(path),
+            BsnReflectorAssetLoader::AssetServer(asset_server) => {
+                asset_server.load::<A>(asset_path)
+            }
             BsnReflectorAssetLoader::LoadContext(load_context) => {
-                load_context.borrow_mut().load::<A>(path)
+                load_context.borrow_mut().load::<A>(asset_path)
             }
         }
     }
@@ -748,7 +751,10 @@ impl ReflectHandleLoad {
 impl<A: Asset> FromType<Handle<A>> for ReflectHandleLoad {
     fn from_type() -> Self {
         ReflectHandleLoad {
-            load: |path, asset_loader| Box::new(asset_loader.load::<A>(path)),
+            load: |path, asset_loader| {
+                let asset_path: AssetPath = path.to_string().into();
+                Box::new(asset_loader.load::<A>(asset_path))
+            },
         }
     }
 }

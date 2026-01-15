@@ -7,14 +7,12 @@
 
 use bevy::app::prelude::*;
 use bevy::asset::Handle;
-use bevy::core_pipeline::{Skybox, prelude::*};
+use bevy::camera::{prelude::*, visibility::RenderLayers};
+use bevy::core_pipeline::Skybox;
 use bevy::ecs::prelude::*;
 use bevy::image::Image;
 use bevy::reflect::prelude::*;
-use bevy::render::{
-    prelude::*,
-    view::{Hdr, RenderLayers},
-};
+use bevy::render::view::Hdr;
 use bevy::transform::prelude::*;
 
 /// See the [module](self) docs.

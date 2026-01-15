@@ -2,8 +2,9 @@ use std::f32::consts::TAU;
 
 use crate::{InteractionKind, InternalGizmoCamera, ScaleGizmo, TransformGizmo, TranslationGizmo};
 use bevy::{
-    core_pipeline::core_3d::Camera3dDepthLoadOp, pbr::NotShadowCaster, prelude::*,
-    render::view::RenderLayers,
+    camera::{Camera3dDepthLoadOp, visibility::RenderLayers},
+    light::NotShadowCaster,
+    prelude::*,
 };
 
 #[derive(Component)]
