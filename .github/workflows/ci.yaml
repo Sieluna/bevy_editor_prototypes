@@ -63,9 +63,9 @@ jobs:
 
       - name: Run tests
         run: |
-          cargo test --locked --workspace --all-features --all-targets
+          cargo test --workspace --all-features --all-targets
           # Workaround for https://github.com/rust-lang/cargo/issues/6669
-          cargo test --locked --workspace --all-features --doc
+          cargo test --workspace --all-features --doc
 
   # Run clippy lints.
   clippy:
@@ -85,12 +85,10 @@ jobs:
         run: sudo apt-get update; sudo apt-get install --no-install-recommends libasound2-dev libudev-dev libwayland-dev libxkbcommon-dev
 
       - name: Populate target directory from cache
-        uses: Leafwing-Studios/cargo-cache@v2
-        with:
-          sweep-cache: true
+        uses: Swatinem/rust-cache@v2
 
       - name: Run clippy lints
-        run: cargo clippy --locked --workspace --all-targets --all-features -- --deny warnings
+        run: cargo clippy --workspace --all-targets --all-features -- --deny warnings
 
   # Check formatting.
   format:
@@ -142,12 +140,10 @@ jobs:
         run: sudo apt-get update; sudo apt-get install --no-install-recommends libasound2-dev libudev-dev libwayland-dev libxkbcommon-dev
 
       - name: Populate target directory from cache
-        uses: Leafwing-Studios/cargo-cache@v2
-        with:
-          sweep-cache: true
+        uses: Swatinem/rust-cache@v2
 
       - name: Check documentation
-        run: cargo doc --locked --workspace --all-features --document-private-items --no-deps
+        run: cargo doc --workspace --all-features --document-private-items --no-deps
 
   # Check design book.
   book:
